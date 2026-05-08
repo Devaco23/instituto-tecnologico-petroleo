@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root {
+  --marino: #0F172A;
+  --naranja: #F97316;
+  --gris-claro: #F1F5F9;
+}
+
+body {
+  background: var(--gris-claro);
+  color: var(--marino);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
