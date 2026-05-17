@@ -10,6 +10,20 @@ import {
   FileText, ClipboardList,
 } from "lucide-react";
 
+// ─── HOOK RESPONSIVE ──────────────────────────────────────────────────────────
+function useWindowSize() {
+  const [width, setWidth] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    setWidth(window.innerWidth);
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return { width, mounted };
+}
+
 // ─── INTERFACES ────────────────────────────────────────────────────────────────
 interface Clase { id: string; nombre: string; descripcion: string; docente_id: string; }
 interface Tarea {
@@ -113,6 +127,8 @@ function getAvisos(modulo: Modulo): Aviso[] {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function TeacherDashboard() {
   const router = useRouter();
+  const { width: screenWidth, mounted } = useWindowSize();
+  const isMobile = mounted && screenWidth < 768;
   const [view, setView] = useState<"dashboard" | "estudiantes" | "calificar" | "detalle-clase" | "calendario">("dashboard");
   const [selectedClase, setSelectedClase] = useState<Clase | null>(null);
   const [selectedTarea, setSelectedTarea] = useState<Tarea | null>(null);
@@ -503,41 +519,68 @@ export default function TeacherDashboard() {
   // RENDER
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0d1b2a", fontFamily: "Inter, sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0d1b2a", fontFamily: "Inter, sans-serif", flexDirection: isMobile ? "column" : "row" }}>
 
-      {/* SIDEBAR */}
-      <aside style={{ width: 260, background: "#060d14", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "28px 20px", display: "flex", flexDirection: "column", position: "fixed", height: "100vh", zIndex: 50 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40, padding: "0 8px" }}>
-          <img src="/logo.png" alt="ITP Logo" style={{ height: 50, width: "auto", objectFit: "contain" }} />
-          <span style={{ color: "white", fontWeight: 700, fontSize: 16 }}>ITP <span style={{ color: "#00C853" }}>LMS</span></span>
-        </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-          {[
-            { label: "Mis Asignaturas", icon: <BookOpen size={18} />, v: "dashboard" },
-            { label: "Estudiantes",     icon: <Globe size={18} />,    v: "estudiantes" },
-            { label: "Calendario",      icon: <Calendar size={18} />, v: "calendario" },
-            { label: "Calificaciones",  icon: <CheckCircle size={18} />, v: "calificar" },
-          ].map((item) => (
-            <button key={item.v} onClick={() => setView(item.v as any)}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                background: view === item.v || (view === "detalle-clase" && item.v === "dashboard") ? "#00C853" : "transparent",
-                color:      view === item.v || (view === "detalle-clase" && item.v === "dashboard") ? "white"    : "#6b9e7e" }}>
-              {item.icon} {item.label}
+      {/* ── SIDEBAR DESKTOP ── */}
+      {!isMobile && (
+        <aside style={{ width: 260, background: "#060d14", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "28px 20px", display: "flex", flexDirection: "column", position: "fixed", height: "100vh", zIndex: 50 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40, padding: "0 8px" }}>
+            <img src="/logo.png" alt="ITP Logo" style={{ height: 50, width: "auto", objectFit: "contain" }} />
+            <span style={{ color: "white", fontWeight: 700, fontSize: 16 }}>ITP <span style={{ color: "#00C853" }}>LMS</span></span>
+          </div>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            {[
+              { label: "Mis Asignaturas", icon: <BookOpen size={18} />, v: "dashboard" },
+              { label: "Estudiantes",     icon: <Globe size={18} />,    v: "estudiantes" },
+              { label: "Calendario",      icon: <Calendar size={18} />, v: "calendario" },
+              { label: "Calificaciones",  icon: <CheckCircle size={18} />, v: "calificar" },
+            ].map((item) => (
+              <button key={item.v} onClick={() => setView(item.v as any)}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                  background: view === item.v || (view === "detalle-clase" && item.v === "dashboard") ? "#00C853" : "transparent",
+                  color:      view === item.v || (view === "detalle-clase" && item.v === "dashboard") ? "white"    : "#6b9e7e" }}>
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </nav>
+          <div style={{ padding: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 20 }}>
+            <p style={{ color: "white",   fontSize: 13, fontWeight: 600, padding: "8px 16px" }}>{nombreDocente}</p>
+            <p style={{ color: "#00C853", fontSize: 11, padding: "0 16px 8px", textTransform: "uppercase", letterSpacing: "1px" }}>Docente</p>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", color: "#ff5252", background: "transparent", fontSize: 13, fontWeight: 600, width: "100%" }}>
+              <LogOut size={16} /> Cerrar Sesión
             </button>
-          ))}
-        </nav>
-        <div style={{ padding: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 20 }}>
-          <p style={{ color: "white",   fontSize: 13, fontWeight: 600, padding: "8px 16px" }}>{nombreDocente}</p>
-          <p style={{ color: "#00C853", fontSize: 11, padding: "0 16px 8px", textTransform: "uppercase", letterSpacing: "1px" }}>Docente</p>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", color: "#ff5252", background: "transparent", fontSize: 13, fontWeight: 600, width: "100%" }}>
-            <LogOut size={16} /> Cerrar Sesión
-          </button>
-        </div>
-      </aside>
+          </div>
+        </aside>
+      )}
+
+      {/* ── TOPBAR MÓVIL ── */}
+      {isMobile && (
+        <header style={{ background: "#060d14", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <img src="/logo.png" alt="ITP Logo" style={{ height: 36, width: "auto", objectFit: "contain" }} />
+            <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>ITP <span style={{ color: "#00C853" }}>LMS</span></span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#6b9e7e", fontSize: 12, fontWeight: 600 }}>{nombreDocente}</span>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ff5252", padding: 6 }}>
+              <LogOut size={18} />
+            </button>
+          </div>
+        </header>
+      )}
 
       {/* MAIN */}
-      <main style={{ marginLeft: 260, flex: 1, background: "#f0faf5", borderRadius: "40px 0 0 40px", padding: "40px", minHeight: "100vh", overflowY: "auto" }}>
+      <main style={{
+        marginLeft: isMobile ? 0 : 260,
+        flex: 1,
+        background: "#f0faf5",
+        borderRadius: isMobile ? 0 : "40px 0 0 40px",
+        padding: isMobile ? "20px 16px 100px" : "40px",
+        minHeight: "100vh",
+        overflowY: "auto",
+      }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
 
           {errorMsg && (
@@ -548,10 +591,10 @@ export default function TeacherDashboard() {
           )}
 
           {/* HEADER */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: isMobile ? 24 : 40, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 0 }}>
             <div>
               <p style={{ color: "#00C853", fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 4 }}>Portal Docente</p>
-              <h1 style={{ color: "#0d1b2a", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", margin: 0 }}>
+              <h1 style={{ color: "#0d1b2a", fontSize: isMobile ? 24 : 32, fontWeight: 800, letterSpacing: "-1px", margin: 0 }}>
                 {view === "dashboard"     && "Mis Asignaturas"}
                 {view === "estudiantes"  && "Estudiantes"}
                 {view === "calificar"    && "Calificaciones"}
@@ -559,26 +602,26 @@ export default function TeacherDashboard() {
                 {view === "detalle-clase" && selectedClase?.nombre}
               </h1>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {view === "dashboard" && (
                 <button onClick={() => setModalClase(true)}
-                  style={{ display: "flex", alignItems: "center", gap: 8, background: "#0d1b2a", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 8, background: "#0d1b2a", color: "white", border: "none", borderRadius: 12, padding: isMobile ? "10px 16px" : "12px 24px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                   <Plus size={16} /> Nueva Asignatura
                 </button>
               )}
               {view === "detalle-clase" && (
                 <>
                   <button onClick={() => setView("dashboard")}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: "white", color: "#0d1b2a", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                    <ArrowLeft size={16} /> Volver
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "white", color: "#0d1b2a", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: isMobile ? "8px 12px" : "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    <ArrowLeft size={16} /> {isMobile ? "" : "Volver"}
                   </button>
                   <button onClick={() => setModalMatricula(true)}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: "white", color: "#0d1b2a", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                    <UserPlus size={16} /> Matricular
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "white", color: "#0d1b2a", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: isMobile ? "8px 12px" : "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    <UserPlus size={16} /> {isMobile ? "" : "Matricular"}
                   </button>
                   <button onClick={() => setModalModulo(true)}
-                    style={{ display: "flex", alignItems: "center", gap: 8, background: "#00C853", color: "white", border: "none", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                    <Layers size={16} /> Nuevo Módulo
+                    style={{ display: "flex", alignItems: "center", gap: 8, background: "#00C853", color: "white", border: "none", borderRadius: 12, padding: isMobile ? "8px 12px" : "12px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    <Layers size={16} /> {isMobile ? "" : "Nuevo Módulo"}
                   </button>
                 </>
               )}
@@ -587,7 +630,7 @@ export default function TeacherDashboard() {
 
           {/* ── DASHBOARD ───────────────────────────────────────────────────── */}
           {view === "dashboard" && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
               {clases.length === 0 && (
                 <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: "#6b9e7e", fontSize: 14, background: "white", borderRadius: 22 }}>
                   No hay asignaturas creadas. Crea la primera.
@@ -721,7 +764,7 @@ export default function TeacherDashboard() {
                   <p style={{ margin: 0 }}>Crea el primero con el botón "Nuevo Módulo"</p>
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
                   {modulos.map((m, idx) => {
                     const tCount = tareasDelModulo(m.id).length;
                     const eCount = evaluacionesDelModulo(m.id).length;
@@ -770,8 +813,8 @@ export default function TeacherDashboard() {
           ── maxWidth subido a 960px ──
       ════════════════════════════════════════════════════════════════════ */}
       {moduloAbierto && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 24px", overflowY: "auto" }}>
-          <div style={{ background: "#f0faf5", borderRadius: 28, width: "100%", maxWidth: 960, margin: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: isMobile ? "flex-end" : "flex-start", justifyContent: "center", padding: isMobile ? 0 : "32px 24px", overflowY: "auto" }}>
+          <div style={{ background: "#f0faf5", borderRadius: isMobile ? "24px 24px 0 0" : 28, width: "100%", maxWidth: isMobile ? "100%" : 960, margin: isMobile ? 0 : "auto", maxHeight: isMobile ? "92vh" : "none", overflowY: "auto" }}>
 
             <div style={{ background: "white", borderRadius: "28px 28px 0 0", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
               <div>
@@ -1223,7 +1266,7 @@ export default function TeacherDashboard() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                       <span style={{ color: "#0d1b2a", fontSize: 14, fontWeight: 700 }}>{e.alumno_nombre}</span>
                       {e.nota !== null ? (
-                        <span style={{ background: "#e8f5e9", color: "#00C853", fontWeight: 700, fontSize: 14, padding: "4px 14px", borderRadius: 980 }}>Nota: {e.nota}</span>
+                        <span style={{ background: parseFloat(String(e.nota)) >= 35 ? "#e8f5e9" : parseFloat(String(e.nota)) >= 25 ? "#fef3c7" : "#ffebee", color: parseFloat(String(e.nota)) >= 35 ? "#00C853" : parseFloat(String(e.nota)) >= 25 ? "#f59e0b" : "#ff5252", fontWeight: 700, fontSize: 14, padding: "4px 14px", borderRadius: 980 }}>Nota: {e.nota} / 50</span>
                       ) : (
                         <span style={{ background: "#fef9c3", color: "#854d0e", fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 980 }}>Sin calificar</span>
                       )}
@@ -1241,7 +1284,7 @@ export default function TeacherDashboard() {
                       </div>
                     )}
                     <div style={{ display: "flex", gap: 8 }}>
-                      <input type="number" min="0" max="10" step="0.1" placeholder="Nota (0-10)" value={nota} onChange={e => setNota(e.target.value)} style={{ flex: 1, background: "white", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none" }} />
+                      <input type="number" min="0" max="50" step="0.1" placeholder="Nota (0-50)" value={nota} onChange={e => setNota(e.target.value)} style={{ flex: 1, background: "white", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none" }} />
                       <button onClick={() => handleCalificar(e.id)} style={{ background: "#00C853", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Star size={13} /> Calificar</button>
                     </div>
                   </div>
@@ -1270,7 +1313,7 @@ export default function TeacherDashboard() {
                 {respuestasDocente.map(resp => (
                   <div key={resp.id} style={{ background: "#f0faf5", borderRadius: 16, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ color: "#0d1b2a", fontSize: 14, fontWeight: 700 }}>{resp.alumno_nombre}</span>
-                    <span style={{ background: resp.nota >= 30.0 ? "#e8f5e9" : "#ffebee", color: resp.nota >= 30.0 ? "#00C853" : "#ff5252", fontWeight: 700, fontSize: 15, padding: "6px 16px", borderRadius: 980 }}>
+                    <span style={{ background: resp.nota >= 35 ? "#e8f5e9" : resp.nota >= 25 ? "#fef3c7" : "#ffebee", color: resp.nota >= 35 ? "#00C853" : resp.nota >= 25 ? "#f59e0b" : "#ff5252", fontWeight: 700, fontSize: 15, padding: "6px 16px", borderRadius: 980 }}>
                       {parseFloat(resp.nota).toFixed(1)} / 50.0
                     </span>
                   </div>
@@ -1279,6 +1322,27 @@ export default function TeacherDashboard() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── BARRA INFERIOR MÓVIL ── */}
+      {isMobile && (
+        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#060d14", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-around", alignItems: "center", padding: "10px 0 14px", zIndex: 50 }}>
+          {[
+            { label: "Asignaturas", icon: <BookOpen size={20} />, v: "dashboard" },
+            { label: "Estudiantes", icon: <Globe size={20} />,    v: "estudiantes" },
+            { label: "Calendario",  icon: <Calendar size={20} />, v: "calendario" },
+            { label: "Notas",       icon: <CheckCircle size={20} />, v: "calificar" },
+          ].map(item => {
+            const active = view === item.v || (view === "detalle-clase" && item.v === "dashboard");
+            return (
+              <button key={item.v} onClick={() => setView(item.v as any)}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "transparent", border: "none", cursor: "pointer", padding: "4px 12px" }}>
+                <span style={{ color: active ? "#00C853" : "#6b9e7e" }}>{item.icon}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: active ? "#00C853" : "#6b9e7e" }}>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       )}
 
     </div>

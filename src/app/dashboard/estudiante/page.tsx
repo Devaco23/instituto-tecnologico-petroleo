@@ -6,8 +6,22 @@ import { useRouter } from "next/navigation";
 import {
   Book, Clock, LogOut, ArrowLeft, LayoutDashboard,
   UploadCloud, X, Calendar, CheckCircle, AlertCircle, ChevronLeft, ChevronRight,
-  Layers, Video, Link as LinkIcon, Bell, FileText, ClipboardList, MessageSquare, Paperclip
+  Layers, Video, Link as LinkIcon, Bell, FileText, ClipboardList, MessageSquare, Paperclip, Menu
 } from "lucide-react";
+
+// ─── HOOK RESPONSIVE ──────────────────────────────────────────────────────────
+function useWindowSize() {
+  const [width, setWidth] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    setWidth(window.innerWidth);
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return { width, mounted };
+}
 // ─── INTERFACES ────────────────────────────────────────────────────────────────
 interface Aviso {
   id: string; modulo_id: string; titulo?: string; contenido: string;
@@ -57,6 +71,8 @@ const avisoColors = {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function StudentDashboard() {
   const router = useRouter();
+  const { width: screenWidth, mounted } = useWindowSize();
+  const isMobile = mounted && screenWidth < 768;
   const [view, setView] = useState<"dashboard" | "clase" | "calendario" | "realizar-evaluacion" | "calificaciones">("dashboard");
   const [nombre, setNombre] = useState("");
   const [userId, setUserId] = useState("");
@@ -296,48 +312,75 @@ export default function StudentDashboard() {
   // RENDER
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0d1b2a", fontFamily: "Inter, sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0d1b2a", fontFamily: "Inter, sans-serif", flexDirection: isMobile ? "column" : "row" }}>
 
-      {/* SIDEBAR */}
-      <aside style={{ width: 260, background: "#060d14", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "28px 20px", display: "flex", flexDirection: "column", position: "fixed", height: "100vh", zIndex: 50 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40, padding: "0 8px" }}>
-          <img src="/logo.png" alt="ITP Logo" style={{ height: 50, width: "auto", objectFit: "contain" }} />
-          <span style={{ color: "white", fontWeight: 700, fontSize: 16 }}>ITP <span style={{ color: "#00C853" }}>Aula</span></span>
-        </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-          <button onClick={() => setView("dashboard")}
-            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: view === "dashboard" || view === "clase" ? "#00C853" : "transparent", color: view === "dashboard" || view === "clase" ? "white" : "#6b9e7e" }}>
-            <Book size={18} /> Mis Cursos
-          </button>
-          <button onClick={() => setView("calendario")}
-            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: view === "calendario" ? "#00C853" : "transparent", color: view === "calendario" ? "white" : "#6b9e7e" }}>
-            <Calendar size={18} /> Calendario
-            {tareasPendientes.length > 0 && (
-              <span style={{ marginLeft: "auto", background: "#ff5252", color: "white", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 980 }}>{tareasPendientes.length}</span>
-            )}
-          </button>
-          <button onClick={() => { setView("calificaciones"); fetchCalificaciones(userId, clases); }}
-            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: view === "calificaciones" ? "#00C853" : "transparent", color: view === "calificaciones" ? "white" : "#6b9e7e" }}>
-            <CheckCircle size={18} /> Calificaciones
-          </button>
-        </nav>
-        <div style={{ padding: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 20 }}>
-          <p style={{ color: "white",   fontSize: 13, fontWeight: 600, padding: "8px 16px" }}>{nombre}</p>
-          <p style={{ color: "#00C853", fontSize: 11, padding: "0 16px 8px", textTransform: "uppercase", letterSpacing: "1px" }}>Estudiante</p>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", color: "#ff5252", background: "transparent", fontSize: 13, fontWeight: 600, width: "100%" }}>
-            <LogOut size={16} /> Cerrar Sesión
-          </button>
-        </div>
-      </aside>
+      {/* ── SIDEBAR DESKTOP ── */}
+      {!isMobile && (
+        <aside style={{ width: 260, background: "#060d14", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "28px 20px", display: "flex", flexDirection: "column", position: "fixed", height: "100vh", zIndex: 50 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40, padding: "0 8px" }}>
+            <img src="/logo.png" alt="ITP Logo" style={{ height: 50, width: "auto", objectFit: "contain" }} />
+            <span style={{ color: "white", fontWeight: 700, fontSize: 16 }}>ITP <span style={{ color: "#00C853" }}>Aula</span></span>
+          </div>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            <button onClick={() => setView("dashboard")}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: view === "dashboard" || view === "clase" ? "#00C853" : "transparent", color: view === "dashboard" || view === "clase" ? "white" : "#6b9e7e" }}>
+              <Book size={18} /> Mis Cursos
+            </button>
+            <button onClick={() => setView("calendario")}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: view === "calendario" ? "#00C853" : "transparent", color: view === "calendario" ? "white" : "#6b9e7e" }}>
+              <Calendar size={18} /> Calendario
+              {tareasPendientes.length > 0 && (
+                <span style={{ marginLeft: "auto", background: "#ff5252", color: "white", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 980 }}>{tareasPendientes.length}</span>
+              )}
+            </button>
+            <button onClick={() => { setView("calificaciones"); fetchCalificaciones(userId, clases); }}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: view === "calificaciones" ? "#00C853" : "transparent", color: view === "calificaciones" ? "white" : "#6b9e7e" }}>
+              <CheckCircle size={18} /> Calificaciones
+            </button>
+          </nav>
+          <div style={{ padding: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 20 }}>
+            <p style={{ color: "white", fontSize: 13, fontWeight: 600, padding: "8px 16px" }}>{nombre}</p>
+            <p style={{ color: "#00C853", fontSize: 11, padding: "0 16px 8px", textTransform: "uppercase", letterSpacing: "1px" }}>Estudiante</p>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", color: "#ff5252", background: "transparent", fontSize: 13, fontWeight: 600, width: "100%" }}>
+              <LogOut size={16} /> Cerrar Sesión
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* ── TOPBAR MÓVIL ── */}
+      {isMobile && (
+        <header style={{ background: "#060d14", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <img src="/logo.png" alt="ITP Logo" style={{ height: 36, width: "auto", objectFit: "contain" }} />
+            <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>ITP <span style={{ color: "#00C853" }}>Aula</span></span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "#6b9e7e", fontSize: 12, fontWeight: 600 }}>{nombre}</span>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ff5252", padding: 6 }}>
+              <LogOut size={18} />
+            </button>
+          </div>
+        </header>
+      )}
 
       {/* MAIN */}
-      <main style={{ marginLeft: 260, flex: 1, background: "#f0faf5", borderRadius: "40px 0 0 40px", padding: "40px", minHeight: "100vh", overflowY: "auto" }}>
+      <main style={{
+        marginLeft: isMobile ? 0 : 260,
+        flex: 1,
+        background: "#f0faf5",
+        borderRadius: isMobile ? 0 : "40px 0 0 40px",
+        padding: isMobile ? "20px 16px 100px" : "40px",
+        minHeight: "100vh",
+        overflowY: "auto",
+      }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
-          <div style={{ marginBottom: 40 }}>
+          <div style={{ marginBottom: isMobile ? 24 : 40 }}>
             <p style={{ color: "#00C853", fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 4 }}>Aula Virtual</p>
-            <h1 style={{ color: "#0d1b2a", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", margin: 0 }}>
+            <h1 style={{ color: "#0d1b2a", fontSize: isMobile ? 24 : 32, fontWeight: 800, letterSpacing: "-1px", margin: 0 }}>
               {view === "dashboard"           && "Hola, " + nombre}
               {view === "clase"               && (selectedClase?.nombre || "")}
               {view === "calendario"          && "Mi Calendario"}
@@ -349,7 +392,7 @@ export default function StudentDashboard() {
           {/* ── DASHBOARD ─────────────────────────────────────────────────── */}
           {view === "dashboard" && (
             <div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(3, 1fr)", gap: isMobile ? 8 : 12, marginBottom: isMobile ? 20 : 28 }}>
                 <div style={{ background: "white", borderRadius: 16, padding: "18px 20px", border: "1px solid rgba(0,0,0,0.06)" }}>
                   <p style={{ color: "#6b9e7e", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>Pendientes</p>
                   <p style={{ color: "#ff5252", fontSize: 28, fontWeight: 800, margin: "4px 0 0" }}>{tareasPendientes.length}</p>
@@ -363,7 +406,7 @@ export default function StudentDashboard() {
                   <p style={{ color: "#00C853", fontSize: 28, fontWeight: 800, margin: "4px 0 0" }}>{tareasVencidas.length}</p>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
                 {clases.length === 0 && (
                   <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: "#6b9e7e", fontSize: 14, background: "white", borderRadius: 22 }}>
                     Aún no estás inscrito en ninguna clase.
@@ -408,7 +451,7 @@ export default function StudentDashboard() {
                 </div>
               )}
               {!loading && modulos.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
                   {modulos.map((m, idx) => {
                     const tCount = tareasDelModulo(m.id).length;
                     const eCount = evaluacionesDelModulo(m.id).length;
@@ -724,8 +767,8 @@ export default function StudentDashboard() {
           MODAL: CONTENIDO DEL MÓDULO (estudiante, solo lectura)
       ════════════════════════════════════════════════════════════════════ */}
       {moduloAbierto && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 24px", overflowY: "auto" }}>
-          <div style={{ background: "#f0faf5", borderRadius: 28, width: "100%", maxWidth: 960, margin: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: isMobile ? "flex-end" : "flex-start", justifyContent: "center", padding: isMobile ? 0 : "32px 24px", overflowY: "auto" }}>
+          <div style={{ background: "#f0faf5", borderRadius: isMobile ? "24px 24px 0 0" : 28, width: "100%", maxWidth: isMobile ? "100%" : 960, margin: isMobile ? 0 : "auto", maxHeight: isMobile ? "92vh" : "none", overflowY: "auto" }}>
 
             {/* Header */}
             <div style={{ background: "white", borderRadius: "28px 28px 0 0", padding: "28px 32px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
@@ -909,8 +952,8 @@ export default function StudentDashboard() {
           MODAL ENTREGA DE TAREA — con comentario y adjunto del docente
       ════════════════════════════════════════════════════════════════════ */}
       {uploadModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ background: "white", borderRadius: 28, padding: 40, width: "100%", maxWidth: 480 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
+          <div style={{ background: "white", borderRadius: isMobile ? "24px 24px 0 0" : 28, padding: isMobile ? "28px 20px 36px" : 40, width: "100%", maxWidth: isMobile ? "100%" : 480 }}>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h3 style={{ color: "#0d1b2a", fontSize: 22, fontWeight: 800, margin: 0 }}>Entregar Tarea</h3>
@@ -982,8 +1025,8 @@ export default function StudentDashboard() {
 
       {/* ════ MODAL RESULTADO EVALUACIÓN ════ */}
       {mostrarResultadoModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.92)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflowY: "auto" }}>
-          <div style={{ background: "white", borderRadius: 32, padding: 44, width: "100%", maxWidth: 520, textAlign: "center", margin: "auto" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.92)", zIndex: 400, display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24, overflowY: "auto" }}>
+          <div style={{ background: "white", borderRadius: isMobile ? "24px 24px 0 0" : 32, padding: isMobile ? "28px 20px 40px" : 44, width: "100%", maxWidth: isMobile ? "100%" : 520, textAlign: "center", margin: isMobile ? 0 : "auto" }}>
             <h3 style={{ color: "#0d1b2a", fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{esNotaProvisional ? "Evaluación Enviada" : "Simulacro Completado"}</h3>
             <p style={{ color: "#6b9e7e", fontSize: 13, marginBottom: 28 }}>{esNotaProvisional ? "Tu docente revisará las preguntas pendientes" : "Resultado calculado automáticamente"}</p>
             <div style={{ width: 170, height: 170, borderRadius: "50%", margin: "0 auto 28px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `8px solid ${esNotaProvisional ? "#80cbc4" : animatedNota >= 30 ? "#b9f6ca" : "#ffcdd2"}`, background: esNotaProvisional ? "#e0f2f1" : animatedNota >= 30 ? "#e8f5e9" : "#ffebee", position: "relative" }}>
@@ -1014,6 +1057,30 @@ export default function StudentDashboard() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── BARRA INFERIOR MÓVIL ── */}
+      {isMobile && (
+        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#060d14", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-around", alignItems: "center", padding: "10px 0 14px", zIndex: 50 }}>
+          <button onClick={() => setView("dashboard")}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "transparent", border: "none", cursor: "pointer", padding: "4px 16px" }}>
+            <Book size={22} color={view === "dashboard" || view === "clase" ? "#00C853" : "#6b9e7e"} />
+            <span style={{ fontSize: 10, fontWeight: 600, color: view === "dashboard" || view === "clase" ? "#00C853" : "#6b9e7e" }}>Cursos</span>
+          </button>
+          <button onClick={() => setView("calendario")}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "transparent", border: "none", cursor: "pointer", padding: "4px 16px", position: "relative" }}>
+            <Calendar size={22} color={view === "calendario" ? "#00C853" : "#6b9e7e"} />
+            {tareasPendientes.length > 0 && (
+              <span style={{ position: "absolute", top: 0, right: 10, background: "#ff5252", color: "white", fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 980 }}>{tareasPendientes.length}</span>
+            )}
+            <span style={{ fontSize: 10, fontWeight: 600, color: view === "calendario" ? "#00C853" : "#6b9e7e" }}>Calendario</span>
+          </button>
+          <button onClick={() => { setView("calificaciones"); fetchCalificaciones(userId, clases); }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "transparent", border: "none", cursor: "pointer", padding: "4px 16px" }}>
+            <CheckCircle size={22} color={view === "calificaciones" ? "#00C853" : "#6b9e7e"} />
+            <span style={{ fontSize: 10, fontWeight: 600, color: view === "calificaciones" ? "#00C853" : "#6b9e7e" }}>Notas</span>
+          </button>
+        </nav>
       )}
 
     </div>
