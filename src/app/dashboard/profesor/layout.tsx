@@ -1,10 +1,13 @@
-import type { ReactNode } from "react";
-import DashboardLayout from "../../../components/DashboardLayout";
-
-type ProfesorLayoutProps = {
-  children: ReactNode;
-};
-
-export default function ProfesorLayout({ children }: ProfesorLayoutProps) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+// src/app/dashboard/profesor/layout.tsx
+export default function ProfesorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      {/* Este layout no añade nada, solo deja pasar el contenido de la page */}
+      {children}
+    </section>
+  );
 }

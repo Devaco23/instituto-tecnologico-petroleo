@@ -55,15 +55,15 @@ export default function LoginPage() {
   };
 
   return (
-    <main style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#0F172A", padding: "40px 24px", fontFamily: "Inter, sans-serif" }}>
+    <main style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#0d1b2a", padding: "40px 24px", fontFamily: "Inter, sans-serif" }}>
       <section style={{ width: "100%", maxWidth: 420, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: "36px 32px" }}>
 
         {/* HEADER */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#F97316", width: 48, height: 48, borderRadius: 14, marginBottom: 16 }}>
-            <span style={{ color: "white", fontWeight: 800, fontSize: 13 }}>ITP</span>
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+            <img src="/logo.png" alt="ITP Logo" style={{ height: 72, width: "auto", objectFit: "contain" }} />
           </div>
-          <p style={{ color: "#F97316", fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 6 }}>
+          <p style={{ color: "#00C853", fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 6 }}>
             Portal Academico
           </p>
           <h1 style={{ color: "white", fontSize: 26, fontWeight: 700, letterSpacing: "-0.5px", margin: 0 }}>
@@ -74,8 +74,8 @@ export default function LoginPage() {
         {/* ERROR */}
         {errorMessage && (
           <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ef4444", flexShrink: 0 }} />
-            <p style={{ color: "#fca5a5", fontSize: 13, margin: 0 }}>{errorMessage}</p>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff5252", flexShrink: 0 }} />
+            <p style={{ color: "#ff8a80", fontSize: 13, margin: 0 }}>{errorMessage}</p>
           </div>
         )}
 
@@ -114,7 +114,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            style={{ width: "100%", background: isLoading ? "rgba(249,115,22,0.5)" : "#F97316", color: "white", border: "none", borderRadius: 12, padding: "13px 16px", fontSize: 14, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", transition: "all 0.2s" }}
+            style={{ width: "100%", background: isLoading ? "rgba(0,200,83,0.5)" : "#00C853", color: "white", border: "none", borderRadius: 12, padding: "13px 16px", fontSize: 14, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer", transition: "all 0.2s" }}
           >
             {isLoading ? "Verificando identidad..." : "Acceder al Aula"}
           </button>
@@ -125,7 +125,7 @@ export default function LoginPage() {
           <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, margin: 0 }}>
             Olvidaste tu acceso o no tienes cuenta?
           </p>
-          <p style={{ color: "#F97316", fontSize: 11, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", marginTop: 4 }}>
+          <p style={{ color: "#00C853", fontSize: 11, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", marginTop: 4 }}>
             Contactar a Soporte Tecnico ITP
           </p>
         </div>

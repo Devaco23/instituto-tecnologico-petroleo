@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
-import DashboardLayout from "../../../components/DashboardLayout";
-
-type EstudianteLayoutProps = {
-  children: ReactNode;
-};
-
-export default function EstudianteLayout({ children }: EstudianteLayoutProps) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+// src/app/dashboard/estudiante/layout.tsx
+export default function StudentLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ width: '100%', minHeight: '100vh', background: '#0F172A' }}>
+      {children}
+    </div>
+  );
 }
