@@ -27,11 +27,9 @@ const C = {
   dangerBg:  "#ffebee",
 } as const;
 
-// ─── Emil: custom easings ─────────────────────────────────────────────────────
 const EASE_OUT    = "cubic-bezier(0.23, 1, 0.32, 1)";
 const EASE_IN_OUT = "cubic-bezier(0.77, 0, 0.175, 1)";
 
-// ─── HOOK RESPONSIVE ─────────────────────────────────────────────────────────
 function useWindowSize() {
   const [width, setWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -45,7 +43,6 @@ function useWindowSize() {
   return { width, mounted };
 }
 
-// ─── INTERFACES ──────────────────────────────────────────────────────────────
 interface Aviso {
   id: string; modulo_id: string; titulo?: string; contenido: string;
   tipo: "info" | "alerta" | "exito"; link_contenido?: string; created_at: string;
@@ -56,7 +53,6 @@ interface Modulo {
   avisos_modulo?: Aviso[];
 }
 
-// ─── VIDEO HELPERS ────────────────────────────────────────────────────────────
 function detectVideoType(url: string): "youtube" | "vimeo" | "mp4" | "unknown" {
   if (!url) return "unknown";
   if (url.includes("youtube.com/watch") || url.includes("youtu.be/") || url.includes("youtube.com/embed")) return "youtube";
@@ -91,12 +87,11 @@ function UniversalPlayer({ url }: { url: string }) {
 }
 
 const avisoColors = {
-  info:   { bg: C.tealBg,   border: "#80cbc4", icon: "ℹ️" },
-  alerta: { bg: C.greenBg,  border: "#a5d6a7", icon: "⚠️" },
-  exito:  { bg: C.greenBg,  border: "#b9f6ca", icon: "✅" },
+  info:   { bg: C.tealBg,  border: "#80cbc4", icon: "ℹ️" },
+  alerta: { bg: C.greenBg, border: "#a5d6a7", icon: "⚠️" },
+  exito:  { bg: C.greenBg, border: "#b9f6ca", icon: "✅" },
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
 export default function StudentDashboard() {
   const router = useRouter();
   const { width: screenWidth, mounted } = useWindowSize();
@@ -166,21 +161,28 @@ export default function StudentDashboard() {
     setLoading(false);
   };
 
+  // ── UPLOAD ROBUSTO ──────────────────────────────────────────────────────────
   const handleUpload = async () => {
     if (!file || !uploadModal) return;
     setLoading(true);
     const path = `entregas/${userId}/${uploadModal.id}_${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from("entregas-alumnos").upload(path, file);
-    if (error) { alert("Error al subir el archivo"); setLoading(false); return; }
+    const { error: upError } = await supabase.storage.from("entregas-alumnos").upload(path, file);
+    if (upError) { alert("Error al subir el archivo: " + upError.message); setLoading(false); return; }
     const url = supabase.storage.from("entregas-alumnos").getPublicUrl(path).data.publicUrl;
-    await supabase.from("entregas_tareas").upsert({ tarea_id: uploadModal.id, alumno_id: userId, archivo_url: url, comentario: comentarioEntrega.trim() || null });
+    const { data: existing } = await supabase.from("entregas_tareas").select("id").eq("tarea_id", uploadModal.id).eq("alumno_id", userId).single();
+    if (existing) {
+      const { error: updErr } = await supabase.from("entregas_tareas").update({ archivo_url: url, comentario: comentarioEntrega.trim() || null }).eq("id", existing.id);
+      if (updErr) { alert("Error al guardar entrega: " + updErr.message); setLoading(false); return; }
+    } else {
+      const { error: insErr } = await supabase.from("entregas_tareas").insert({ tarea_id: uploadModal.id, alumno_id: userId, archivo_url: url, comentario: comentarioEntrega.trim() || null });
+      if (insErr) { alert("Error al registrar entrega: " + insErr.message); setLoading(false); return; }
+    }
     setUploadModal(null); setFile(null); setComentarioEntrega("");
     await fetchClaseData(selectedClase?.id, userId);
     await fetchUserData();
     setLoading(false);
   };
 
-  // Semana
   const getSemana = () => {
     const hoy = new Date();
     const lunes = new Date(hoy);
@@ -234,7 +236,7 @@ export default function StudentDashboard() {
     setMostrarResultadoModal(true); setAnimatedNota(0);
     const pasos = 36, dur = 1800, inc = nota / pasos, step = dur / pasos;
     let p = 0, acc = 0;
-    const t = setInterval(() => { p++; acc += inc; if (p >= pasos || acc >= nota) { acc = nota; clearInterval(t); } setAnimatedNota(parseFloat(acc.toFixed(1))); }, step);
+    const timer = setInterval(() => { p++; acc += inc; if (p >= pasos || acc >= nota) { acc = nota; clearInterval(timer); } setAnimatedNota(parseFloat(acc.toFixed(1))); }, step);
     setLoading(false);
   };
 
@@ -274,64 +276,48 @@ export default function StudentDashboard() {
     setLoadingCalif(false);
   };
 
-  // ── SIDEBAR NAV ITEMS ────────────────────────────────────────────────────────
   const navItems = [
-    { label: "Mis Cursos",       icon: <Book size={18} />,         v: "dashboard",       active: view === "dashboard" || view === "clase" },
-    { label: "Calendario",       icon: <Calendar size={18} />,     v: "calendario",      active: view === "calendario", badge: tareasPendientes.length },
-    { label: "Calificaciones",   icon: <CheckCircle size={18} />,  v: "calificaciones",  active: view === "calificaciones" },
+    { label: "Mis Cursos",     icon: <Book size={18} />,        v: "dashboard",      active: view === "dashboard" || view === "clase" },
+    { label: "Calendario",     icon: <Calendar size={18} />,    v: "calendario",     active: view === "calendario", badge: tareasPendientes.length },
+    { label: "Calificaciones", icon: <CheckCircle size={18} />, v: "calificaciones", active: view === "calificaciones" },
   ];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: C.navy, fontFamily: "'Segoe UI', Inter, system-ui, sans-serif", flexDirection: isMobile ? "column" : "row" }}>
 
-      {/* ── SIDEBAR DESKTOP ─────────────────────────────────────────────────── */}
+      {/* SIDEBAR DESKTOP */}
       {!isMobile && (
-        <aside style={{ width: 260, background: C.navyDeep, borderRight: `1px solid rgba(255,255,255,0.06)`, padding: "28px 20px", display: "flex", flexDirection: "column", position: "fixed", height: "100vh", zIndex: 50 }}>
+        <aside style={{ width: 260, background: C.navyDeep, borderRight: "1px solid rgba(255,255,255,0.06)", padding: "28px 20px", display: "flex", flexDirection: "column", position: "fixed", height: "100vh", zIndex: 50 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40, padding: "0 8px" }}>
             <img src="/logo.png" alt="ITP" style={{ height: 46, width: "auto", objectFit: "contain" }} />
             <span style={{ color: "white", fontWeight: 800, fontSize: 16 }}>ITP <span style={{ color: C.green }}>Aula</span></span>
           </div>
           <nav style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1 }}>
             {navItems.map(item => (
-              <button
-                key={item.v}
+              <button key={item.v}
                 onClick={() => { setView(item.v as any); if (item.v === "calificaciones") fetchCalificaciones(userId, clases); }}
                 className="nav-btn"
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer",
-                  fontSize: 13, fontWeight: 600, width: "100%", textAlign: "left",
-                  background: item.active ? C.green : "transparent",
-                  color: item.active ? "white" : C.muted,
-                  // Emil: specify exact properties
-                  transition: `background 180ms ${EASE_OUT}, color 180ms ${EASE_OUT}`,
-                }}
-              >
-                {item.icon}
-                {item.label}
-                {item.badge && item.badge > 0 && (
-                  <span style={{ marginLeft: "auto", background: C.danger, color: "white", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 980 }}>{item.badge}</span>
-                )}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%", textAlign: "left", background: item.active ? C.green : "transparent", color: item.active ? "white" : C.muted, transition: `background 180ms ${EASE_OUT}, color 180ms ${EASE_OUT}` }}>
+                {item.icon} {item.label}
+                {item.badge && item.badge > 0 && <span style={{ marginLeft: "auto", background: C.danger, color: "white", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 980 }}>{item.badge}</span>}
               </button>
             ))}
           </nav>
-          <div style={{ padding: "8px", borderTop: `1px solid rgba(255,255,255,0.06)`, marginTop: 20 }}>
+          <div style={{ padding: "8px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 20 }}>
             <p style={{ color: "white", fontSize: 13, fontWeight: 600, padding: "8px 16px", margin: 0 }}>{nombre}</p>
             <p style={{ color: C.green, fontSize: 11, padding: "0 16px 8px", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>Estudiante</p>
-            <button
-              onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
+            <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))}
               className="signout-btn"
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", color: C.danger, background: "transparent", fontSize: 13, fontWeight: 600, width: "100%", transition: `opacity 150ms ${EASE_OUT}` }}
-            >
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", color: C.danger, background: "transparent", fontSize: 13, fontWeight: 600, width: "100%", transition: `opacity 150ms ${EASE_OUT}` }}>
               <LogOut size={16} /> Cerrar Sesión
             </button>
           </div>
         </aside>
       )}
 
-      {/* ── TOPBAR MÓVIL ────────────────────────────────────────────────────── */}
+      {/* TOPBAR MÓVIL */}
       {isMobile && (
-        <header style={{ background: C.navyDeep, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50, borderBottom: `1px solid rgba(255,255,255,0.06)` }}>
+        <header style={{ background: C.navyDeep, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <img src="/logo.png" alt="ITP" style={{ height: 36, width: "auto", objectFit: "contain" }} />
             <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>ITP <span style={{ color: C.green }}>Aula</span></span>
@@ -343,19 +329,10 @@ export default function StudentDashboard() {
         </header>
       )}
 
-      {/* ── MAIN ─────────────────────────────────────────────────────────────── */}
-      <main style={{
-        marginLeft: isMobile ? 0 : 260,
-        flex: 1,
-        background: C.pageBg,
-        borderRadius: isMobile ? 0 : "40px 0 0 40px",
-        padding: isMobile ? "20px 16px 100px" : "40px",
-        minHeight: "100vh",
-        overflowY: "auto",
-      }}>
+      {/* MAIN */}
+      <main style={{ marginLeft: isMobile ? 0 : 260, flex: 1, background: C.pageBg, borderRadius: isMobile ? 0 : "40px 0 0 40px", padding: isMobile ? "20px 16px 100px" : "40px", minHeight: "100vh", overflowY: "auto" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
-          {/* Page title */}
           <div style={{ marginBottom: isMobile ? 24 : 36 }}>
             <p style={{ color: C.green, fontSize: 11, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", margin: "0 0 4px" }}>Aula Virtual</p>
             <h1 style={{ color: C.navy, fontSize: isMobile ? 24 : 32, fontWeight: 800, letterSpacing: "-1px", margin: 0 }}>
@@ -367,55 +344,30 @@ export default function StudentDashboard() {
             </h1>
           </div>
 
-          {/* ── DASHBOARD ─────────────────────────────────────────────────── */}
+          {/* DASHBOARD */}
           {view === "dashboard" && (
             <div>
-              {/* Stats row */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? 8 : 12, marginBottom: isMobile ? 20 : 28 }}>
                 {[
-                  { label: "Pendientes",  value: tareasPendientes.length,  color: C.danger },
-                  { label: "Entregadas",  value: tareasEntregadas.length,  color: C.green  },
-                  { label: "Vencidas",    value: tareasVencidas.length,    color: C.green  },
+                  { label: "Pendientes", value: tareasPendientes.length, color: C.danger },
+                  { label: "Entregadas", value: tareasEntregadas.length, color: C.green },
+                  { label: "Vencidas",   value: tareasVencidas.length,   color: C.green },
                 ].map((s, i) => (
-                  <div key={s.label}
-                    style={{
-                      background: "white", borderRadius: 16, padding: isMobile ? "14px 16px" : "20px 22px",
-                      border: `1px solid ${C.border}`,
-                      // Emil: stagger
-                      animation: `statIn 300ms ${EASE_OUT} ${i * 60}ms both`,
-                    }}
-                  >
+                  <div key={s.label} style={{ background: "white", borderRadius: 16, padding: isMobile ? "14px 16px" : "20px 22px", border: `1px solid ${C.border}`, animation: `statIn 300ms ${EASE_OUT} ${i * 60}ms both` }}>
                     <p style={{ color: C.muted, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 4px" }}>{s.label}</p>
                     <p style={{ color: s.color, fontSize: isMobile ? 24 : 30, fontWeight: 900, margin: 0, letterSpacing: "-1px" }}>{s.value}</p>
                   </div>
                 ))}
               </div>
-
-              {/* Courses grid */}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
-                {clases.length === 0 && (
-                  <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: C.muted, fontSize: 14, background: "white", borderRadius: 22 }}>
-                    Aún no estás inscrito en ninguna clase.
-                  </div>
-                )}
+                {clases.length === 0 && <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: C.muted, fontSize: 14, background: "white", borderRadius: 22 }}>Aún no estás inscrito en ninguna clase.</div>}
                 {clases.map((c: any, i: number) => {
                   const pendientes = todasTareas.filter(t => t.clase_id === c.id && !t.entrega && !t.esVencida).length;
                   return (
-                    <div
-                      key={c.id}
-                      onClick={() => { setSelectedClase(c); setView("clase"); fetchClaseData(c.id, userId); }}
+                    <div key={c.id} onClick={() => { setSelectedClase(c); setView("clase"); fetchClaseData(c.id, userId); }}
                       className="card-hover"
-                      style={{
-                        background: "white", borderRadius: 22, padding: 28,
-                        border: `1px solid ${C.border}`, cursor: "pointer", position: "relative",
-                        animation: `cardIn 320ms ${EASE_OUT} ${i * 50}ms both`,
-                      }}
-                    >
-                      {pendientes > 0 && (
-                        <div style={{ position: "absolute", top: 16, right: 16, background: C.danger, color: "white", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 980 }}>
-                          {pendientes} pendiente{pendientes > 1 ? "s" : ""}
-                        </div>
-                      )}
+                      style={{ background: "white", borderRadius: 22, padding: 28, border: `1px solid ${C.border}`, cursor: "pointer", position: "relative", animation: `cardIn 320ms ${EASE_OUT} ${i * 50}ms both` }}>
+                      {pendientes > 0 && <div style={{ position: "absolute", top: 16, right: 16, background: C.danger, color: "white", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 980 }}>{pendientes} pendiente{pendientes > 1 ? "s" : ""}</div>}
                       <div style={{ background: C.greenBg, width: 48, height: 48, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                         <Book size={22} color={C.green} />
                       </div>
@@ -429,16 +381,16 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* ── VISTA CLASE: MÓDULOS ─────────────────────────────────────── */}
+          {/* CLASE: MÓDULOS */}
           {view === "clase" && (
             <div>
               <button onClick={() => setView("dashboard")} className="back-btn"
-                style={{ display: "flex", alignItems: "center", gap: 8, background: "white", color: C.navy, border: `1px solid rgba(0,0,0,0.08)`, borderRadius: 12, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 28 }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, background: "white", color: C.navy, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", marginBottom: 28 }}>
                 <ArrowLeft size={15} /> Volver
               </button>
               {loading && <p style={{ color: C.muted, fontSize: 14 }}>Cargando módulos...</p>}
               {!loading && modulos.length === 0 && (
-                <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 14, background: "white", borderRadius: 22, border: `2px dashed rgba(0,0,0,0.08)` }}>
+                <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 14, background: "white", borderRadius: 22, border: "2px dashed rgba(0,0,0,0.08)" }}>
                   <Layers size={40} color="#e2e8f0" style={{ marginBottom: 16 }} />
                   <p style={{ margin: 0 }}>El docente aún no ha publicado módulos.</p>
                 </div>
@@ -451,19 +403,16 @@ export default function StudentDashboard() {
                     const aCount = (m.avisos_modulo || []).length;
                     const pend = tareasDelModulo(m.id).filter(t => !t.entrega && !t.esVencida).length;
                     return (
-                      <div key={m.id} onClick={() => abrirModulo(m)}
-                        className="card-hover"
+                      <div key={m.id} onClick={() => abrirModulo(m)} className="card-hover"
                         style={{ background: "white", borderRadius: 22, padding: 28, border: `1px solid ${C.border}`, cursor: "pointer", position: "relative", animation: `cardIn 300ms ${EASE_OUT} ${idx * 50}ms both` }}>
-                        {pend > 0 && (
-                          <div style={{ position: "absolute", top: 16, right: 16, background: C.danger, color: "white", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 980 }}>{pend} pend.</div>
-                        )}
+                        {pend > 0 && <div style={{ position: "absolute", top: 16, right: 16, background: C.danger, color: "white", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 980 }}>{pend} pend.</div>}
                         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
                           <div style={{ background: C.green, color: "white", width: 38, height: 38, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15 }}>{idx + 1}</div>
                         </div>
                         <h3 style={{ color: C.navy, fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{m.titulo}</h3>
                         {m.descripcion && <p style={{ color: C.muted, fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>{m.descripcion}</p>}
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-                          {tCount > 0 && <span style={{ background: C.tealBg, color: C.greenMid, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 980 }}><FileText size={9} style={{ display: "inline" }} /> {tCount} tarea{tCount > 1 ? "s" : ""}</span>}
+                          {tCount > 0 && <span style={{ background: C.tealBg, color: C.greenMid, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 980 }}>{tCount} tarea{tCount > 1 ? "s" : ""}</span>}
                           {eCount > 0 && <span style={{ background: C.greenBg, color: C.green, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 980 }}>{eCount} eval.</span>}
                           {aCount > 0 && <span style={{ background: C.greenBg, color: C.green, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 980 }}>{aCount} aviso{aCount > 1 ? "s" : ""}</span>}
                           {m.link_contenido && <span style={{ background: C.tealBg, color: C.greenDark, fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 980 }}>Video</span>}
@@ -477,7 +426,7 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* ── EVALUACIÓN ───────────────────────────────────────────────── */}
+          {/* EVALUACIÓN */}
           {view === "realizar-evaluacion" && selectedEval && (
             <div>
               <div style={{ background: "white", borderRadius: 24, padding: 32, border: `1px solid ${C.border}`, marginBottom: 24 }}>
@@ -505,13 +454,7 @@ export default function StudentDashboard() {
                           const selected = respuestasAlumno[p.id] === optIdx;
                           return (
                             <div key={letter} onClick={() => setRespuestasAlumno({ ...respuestasAlumno, [p.id]: optIdx })}
-                              style={{
-                                display: "flex", alignItems: "center", gap: 12,
-                                padding: "14px 20px", borderRadius: 12, cursor: "pointer",
-                                border: selected ? `2px solid ${C.green}` : `1px solid rgba(0,0,0,0.08)`,
-                                background: selected ? C.greenBg : "white",
-                                transition: `background 150ms ${EASE_OUT}, border-color 150ms ${EASE_OUT}`,
-                              }}>
+                              style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderRadius: 12, cursor: "pointer", border: selected ? `2px solid ${C.green}` : "1px solid rgba(0,0,0,0.08)", background: selected ? C.greenBg : "white", transition: `background 150ms ${EASE_OUT}, border-color 150ms ${EASE_OUT}` }}>
                               <div style={{ width: 20, height: 20, borderRadius: "50%", border: selected ? `6px solid ${C.green}` : "2px solid rgba(0,0,0,0.2)", background: "white", flexShrink: 0 }} />
                               <span style={{ fontSize: 14, fontWeight: 700, color: selected ? C.green : C.navy }}>{letter}.</span>
                               <span style={{ fontSize: 14, color: C.navy }}>{p.opciones[optIdx]}</span>
@@ -522,14 +465,14 @@ export default function StudentDashboard() {
                     ) : (
                       <div style={{ paddingLeft: 40 }}>
                         <textarea placeholder="Escribe tu respuesta..." value={respuestasAlumno[p.id] || ""} onChange={e => setRespuestasAlumno({ ...respuestasAlumno, [p.id]: e.target.value })}
-                          style={{ width: "100%", background: C.pageBg, border: `1px solid rgba(0,0,0,0.1)`, borderRadius: 12, padding: 16, fontSize: 14, outline: "none", color: C.navy, minHeight: 120, resize: "none", boxSizing: "border-box" as const }} />
+                          style={{ width: "100%", background: C.pageBg, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 12, padding: 16, fontSize: 14, outline: "none", color: C.navy, minHeight: 120, resize: "none", boxSizing: "border-box" as const }} />
                       </div>
                     )}
                   </div>
                 ))}
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginBottom: 60 }}>
-                <button onClick={() => setView("clase")} style={{ background: "white", color: C.mutedDark, border: `1px solid rgba(0,0,0,0.08)`, borderRadius: 12, padding: "14px 28px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+                <button onClick={() => setView("clase")} style={{ background: "white", color: C.mutedDark, border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "14px 28px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
                 <button onClick={finalizarYCalificarEvaluacion} disabled={loading} className="btn-primary"
                   style={{ background: C.green, color: "white", border: "none", borderRadius: 12, padding: "14px 32px", fontSize: 14, fontWeight: 600, cursor: "pointer", boxShadow: `0 4px 16px rgba(0,200,83,0.3)` }}>
                   {loading ? "Enviando..." : "Terminar y Calificar"}
@@ -538,25 +481,17 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* ── CALENDARIO ───────────────────────────────────────────────── */}
+          {/* CALENDARIO */}
           {view === "calendario" && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-                <button onClick={() => setSemanaOffset(semanaOffset - 1)} className="back-btn"
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: `1px solid rgba(0,0,0,0.08)`, borderRadius: 12, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: C.navy }}>
-                  <ChevronLeft size={16} /> Anterior
-                </button>
+                <button onClick={() => setSemanaOffset(semanaOffset - 1)} className="back-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: C.navy }}><ChevronLeft size={16} /> Anterior</button>
                 <div style={{ textAlign: "center" }}>
                   <p style={{ color: C.navy, fontSize: 15, fontWeight: 700, margin: 0 }}>{diasSemana[0].getDate()} {meses[diasSemana[0].getMonth()]} — {diasSemana[6].getDate()} {meses[diasSemana[6].getMonth()]} {diasSemana[6].getFullYear()}</p>
                   {semanaOffset === 0 && <p style={{ color: C.green, fontSize: 11, fontWeight: 600, margin: "2px 0 0" }}>Esta semana</p>}
                 </div>
-                <button onClick={() => setSemanaOffset(semanaOffset + 1)} className="back-btn"
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: `1px solid rgba(0,0,0,0.08)`, borderRadius: 12, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: C.navy }}>
-                  Siguiente <ChevronRight size={16} />
-                </button>
+                <button onClick={() => setSemanaOffset(semanaOffset + 1)} className="back-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "white", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: C.navy }}>Siguiente <ChevronRight size={16} /></button>
               </div>
-
-              {/* Calendar grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: isMobile ? 4 : 8, marginBottom: 28 }}>
                 {diasSemana.map((dia, i) => {
                   const tdias = tareasPorDia(dia);
@@ -576,8 +511,6 @@ export default function StudentDashboard() {
                   );
                 })}
               </div>
-
-              {/* Task lists */}
               {[
                 { title: "Tareas de esta semana", items: todasTareas.filter(t => { if (!t.fecha_entrega) return false; const f = new Date(t.fecha_entrega); return f >= diasSemana[0] && f <= diasSemana[6]; }), badges: [`${tareasPendientes.length} pendientes`, `${tareasEntregadas.length} entregadas`] },
                 { title: "Todas las tareas pendientes", items: tareasPendientes, badges: [] },
@@ -585,53 +518,45 @@ export default function StudentDashboard() {
                 <div key={section.title} style={{ background: "white", borderRadius: 22, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
                   <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                     <h3 style={{ color: C.navy, fontSize: 15, fontWeight: 700, margin: 0 }}>{section.title}</h3>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {section.badges.map(b => <span key={b} style={{ background: C.greenBg, color: C.greenDark, fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 980 }}>{b}</span>)}
-                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>{section.badges.map(b => <span key={b} style={{ background: C.greenBg, color: C.greenDark, fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 980 }}>{b}</span>)}</div>
                   </div>
-                  {section.items.length === 0 ? <div style={{ padding: 36, textAlign: "center", color: C.muted, fontSize: 14 }}>Sin tareas aquí.</div> : section.items.map((t, idx, arr) => (
-                    <div key={t.id} style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: idx < arr.length - 1 ? `1px solid rgba(0,0,0,0.04)` : "none", gap: 16, flexWrap: "wrap" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: t.entrega ? C.greenBg : t.esVencida ? C.dangerBg : C.greenBg, flexShrink: 0 }}>
-                          {t.entrega ? <CheckCircle size={16} color={C.green} /> : t.esVencida ? <AlertCircle size={16} color={C.danger} /> : <Clock size={16} color={C.green} />}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ color: C.navy, fontSize: 14, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.titulo}</p>
-                          <p style={{ color: C.muted, fontSize: 12, margin: "2px 0 0" }}>{t.clase_nombre} — {new Date(t.fecha_entrega).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                        {t.entrega ? (
-                          <div style={{ textAlign: "center" }}>
-                            <p style={{ color: C.muted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", margin: 0 }}>Nota</p>
-                            <p style={{ color: C.navy, fontSize: 18, fontWeight: 800, margin: 0 }}>{t.entrega.nota ?? "—"}</p>
+                  {section.items.length === 0 ? <div style={{ padding: 36, textAlign: "center", color: C.muted, fontSize: 14 }}>Sin tareas aquí.</div>
+                    : section.items.map((t, idx, arr) => (
+                      <div key={t.id} style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: idx < arr.length - 1 ? "1px solid rgba(0,0,0,0.04)" : "none", gap: 16, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: t.entrega ? C.greenBg : t.esVencida ? C.dangerBg : C.greenBg, flexShrink: 0 }}>
+                            {t.entrega ? <CheckCircle size={16} color={C.green} /> : t.esVencida ? <AlertCircle size={16} color={C.danger} /> : <Clock size={16} color={C.green} />}
                           </div>
-                        ) : (
-                          <span style={{ background: t.esVencida ? C.dangerBg : C.greenBg, color: t.esVencida ? C.danger : C.green, fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 980 }}>
-                            {t.esVencida ? "Vencida" : "Pendiente"}
-                          </span>
-                        )}
-                        {!t.entrega && !t.esVencida && (
-                          <button onClick={() => { setSelectedClase({ id: t.clase_id, nombre: t.clase_nombre }); setComentarioEntrega(""); setUploadModal(t); }}
-                            className="btn-primary"
-                            style={{ background: C.navy, color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                            Subir
-                          </button>
-                        )}
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ color: C.navy, fontSize: 14, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.titulo}</p>
+                            <p style={{ color: C.muted, fontSize: 12, margin: "2px 0 0" }}>{t.clase_nombre} — {new Date(t.fecha_entrega).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                          {t.entrega ? (
+                            <div style={{ textAlign: "center" }}>
+                              <p style={{ color: C.muted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", margin: 0 }}>Nota</p>
+                              <p style={{ color: C.navy, fontSize: 18, fontWeight: 800, margin: 0 }}>{t.entrega.nota ?? "—"}</p>
+                            </div>
+                          ) : <span style={{ background: t.esVencida ? C.dangerBg : C.greenBg, color: t.esVencida ? C.danger : C.green, fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 980 }}>{t.esVencida ? "Vencida" : "Pendiente"}</span>}
+                          {!t.entrega && !t.esVencida && (
+                            <button onClick={() => { setSelectedClase({ id: t.clase_id, nombre: t.clase_nombre }); setComentarioEntrega(""); setUploadModal(t); }}
+                              className="btn-primary" style={{ background: C.navy, color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Subir</button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── CALIFICACIONES ────────────────────────────────────────────── */}
+          {/* CALIFICACIONES */}
           {view === "calificaciones" && (
             <div>
               {loadingCalif && <div style={{ textAlign: "center", padding: 60, color: C.muted }}>Cargando calificaciones...</div>}
               {!loadingCalif && calificacionesPorClase.length === 0 && (
-                <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 14, background: "white", borderRadius: 22, border: `2px dashed rgba(0,0,0,0.08)` }}>
+                <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 14, background: "white", borderRadius: 22, border: "2px dashed rgba(0,0,0,0.08)" }}>
                   <CheckCircle size={40} color="#b9f6ca" style={{ marginBottom: 16 }} />
                   <p style={{ margin: "0 0 6px", fontWeight: 600, color: C.mutedDark }}>Aún no tienes calificaciones</p>
                   <p style={{ margin: 0, fontSize: 13 }}>Aquí aparecerán tus notas cuando el docente las publique.</p>
@@ -645,14 +570,11 @@ export default function StudentDashboard() {
                   const notas = items.map((i: any) => parseFloat(i.nota));
                   const promedio = notas.length ? notas.reduce((a: number, b: number) => a + b, 0) / notas.length : null;
                   return (
-                    <div key={clase.id} style={{ background: "white", borderRadius: 22, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: isOpen ? `0 6px 24px rgba(0,0,0,0.07)` : "none", transition: `box-shadow 200ms ${EASE_OUT}` }}>
-                      <button
-                        onClick={() => setAcordeonesAbiertos(p => ({ ...p, [clase.id]: !p[clase.id] }))}
+                    <div key={clase.id} style={{ background: "white", borderRadius: 22, border: `1px solid ${C.border}`, overflow: "hidden", boxShadow: isOpen ? "0 6px 24px rgba(0,0,0,0.07)" : "none", transition: `box-shadow 200ms ${EASE_OUT}` }}>
+                      <button onClick={() => setAcordeonesAbiertos(p => ({ ...p, [clase.id]: !p[clase.id] }))}
                         style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", background: "white", border: "none", cursor: "pointer" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          <div style={{ background: C.greenBg, width: 44, height: 44, borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Book size={20} color={C.green} />
-                          </div>
+                          <div style={{ background: C.greenBg, width: 44, height: 44, borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center" }}><Book size={20} color={C.green} /></div>
                           <div style={{ textAlign: "left" }}>
                             <p style={{ color: C.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 2px" }}>Asignatura</p>
                             <h3 style={{ color: C.navy, fontSize: 15, fontWeight: 700, margin: 0 }}>{clase.nombre}</h3>
@@ -662,18 +584,14 @@ export default function StudentDashboard() {
                           {promedio !== null && (
                             <div style={{ textAlign: "right" }}>
                               <p style={{ color: C.muted, fontSize: 10, fontWeight: 600, textTransform: "uppercase", margin: "0 0 1px" }}>Promedio</p>
-                              <span style={{ fontSize: 20, fontWeight: 900, color: promedio >= 35 ? C.green : promedio >= 25 ? "#f59e0b" : C.danger }}>
-                                {promedio.toFixed(1)}<span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>/50</span>
-                              </span>
+                              <span style={{ fontSize: 20, fontWeight: 900, color: promedio >= 35 ? C.green : promedio >= 25 ? "#f59e0b" : C.danger }}>{promedio.toFixed(1)}<span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>/50</span></span>
                             </div>
                           )}
-                          {/* Emil: rotate chevron */}
                           <div style={{ transition: `transform 200ms ${EASE_OUT}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", background: C.pageBg, borderRadius: 10, padding: "6px 8px", display: "flex" }}>
                             <ChevronRight size={16} color={C.muted} style={{ transform: "rotate(90deg)" }} />
                           </div>
                         </div>
                       </button>
-                      {/* Emil: max-height transition for smooth expand */}
                       <div style={{ maxHeight: isOpen ? "2000px" : "0px", overflow: "hidden", transition: `max-height ${isOpen ? "400ms" : "250ms"} ${EASE_IN_OUT}` }}>
                         <div style={{ borderTop: `1px solid ${C.border}`, padding: "18px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
                           {Object.entries(porModulo).map(([modNombre, modItems]) => (
@@ -689,22 +607,14 @@ export default function StudentDashboard() {
                                   const colorNota = nota >= 35 ? C.green : nota >= 25 ? "#f59e0b" : C.danger;
                                   const bgNota   = nota >= 35 ? C.greenBg : nota >= 25 ? "#fef3c7" : C.dangerBg;
                                   return (
-                                    <div key={item.id}
-                                      style={{
-                                        display: "flex", alignItems: "center", gap: 14,
-                                        background: C.pageBg, borderRadius: 14, padding: "14px 18px",
-                                        border: `1px solid rgba(0,0,0,0.04)`,
-                                        animation: isOpen ? `cardIn 250ms ${EASE_OUT} ${ii * 30}ms both` : "none",
-                                      }}>
+                                    <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, background: C.pageBg, borderRadius: 14, padding: "14px 18px", border: "1px solid rgba(0,0,0,0.04)", animation: isOpen ? `cardIn 250ms ${EASE_OUT} ${ii * 30}ms both` : "none" }}>
                                       <div style={{ width: 36, height: 36, borderRadius: 10, background: item.tipo === "tarea" ? C.tealBg : C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                         {item.tipo === "tarea" ? <FileText size={16} color={C.greenMid} /> : <ClipboardList size={16} color={C.green} />}
                                       </div>
                                       <div style={{ flex: 1 }}>
                                         <p style={{ color: C.navy, fontSize: 13, fontWeight: 600, margin: "0 0 3px" }}>{item.titulo}</p>
                                         <div style={{ display: "flex", gap: 5 }}>
-                                          <span style={{ background: item.tipo === "tarea" ? C.tealBg : C.greenBg, color: item.tipo === "tarea" ? C.greenMid : C.green, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>
-                                            {item.tipo === "tarea" ? "Tarea" : "Evaluación"}
-                                          </span>
+                                          <span style={{ background: item.tipo === "tarea" ? C.tealBg : C.greenBg, color: item.tipo === "tarea" ? C.greenMid : C.green, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>{item.tipo === "tarea" ? "Tarea" : "Evaluación"}</span>
                                           {item.es_provisional && <span style={{ background: C.tealBg, color: C.greenDark, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>⏳ Provisional</span>}
                                         </div>
                                       </div>
@@ -733,92 +643,81 @@ export default function StudentDashboard() {
         </div>
       </main>
 
-      {/* ════ MODAL: MÓDULO ════ */}
+      {/* MODAL: MÓDULO */}
       {moduloAbierto && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: isMobile ? "flex-end" : "flex-start", justifyContent: "center", padding: isMobile ? 0 : "32px 24px", overflowY: "auto" }}>
           <div style={{ background: C.pageBg, borderRadius: isMobile ? "24px 24px 0 0" : 28, width: "100%", maxWidth: isMobile ? "100%" : 960, margin: isMobile ? 0 : "auto", maxHeight: isMobile ? "92vh" : "none", overflowY: "auto" }}>
-            {/* Header */}
             <div style={{ background: "white", borderRadius: "28px 28px 0 0", padding: "24px 28px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `1px solid ${C.border}` }}>
               <div>
                 <p style={{ color: C.green, fontSize: 11, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", margin: "0 0 4px" }}>Módulo</p>
                 <h2 style={{ color: C.navy, fontSize: 22, fontWeight: 800, margin: 0 }}>{moduloAbierto.titulo}</h2>
                 {moduloAbierto.descripcion && <p style={{ color: C.mutedDark, fontSize: 13, margin: "6px 0 0" }}>{moduloAbierto.descripcion}</p>}
               </div>
-              <button onClick={() => setModuloAbierto(null)} className="icon-btn"
-                style={{ background: C.pageBg, border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer", flexShrink: 0, marginLeft: 16 }}>
+              <button onClick={() => setModuloAbierto(null)} className="icon-btn" style={{ background: C.pageBg, border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer", flexShrink: 0, marginLeft: 16 }}>
                 <X size={18} color={C.mutedDark} />
               </button>
             </div>
             {moduloAbierto.link_contenido && <div style={{ padding: "0 28px" }}><UniversalPlayer url={moduloAbierto.link_contenido} /></div>}
 
-            {/* Tareas */}
-            {[
-              { label: "Tareas", icon: <FileText size={13} color={C.greenMid} />, badge: { bg: C.tealBg, color: C.greenMid }, items: tareasDelModulo(moduloAbierto.id), type: "tarea" },
-            ].map(section => (
-              <div key={section.label} style={{ padding: "22px 28px 0" }}>
-                <p style={{ color: C.navy, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                  {section.icon} {section.label}
-                  <span style={{ background: section.badge.bg, color: section.badge.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 980 }}>{section.items.length}</span>
-                </p>
-                {section.items.length === 0 ? (
-                  <div style={{ background: "white", borderRadius: 14, padding: "16px 20px", color: C.muted, fontSize: 13, textAlign: "center" }}>Sin tareas en este módulo.</div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {section.items.map((t: any) => (
-                      <div key={t.id} style={{ background: "white", borderRadius: 16, padding: "18px 20px", border: `1px solid rgba(0,0,0,0.05)` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                              <h4 style={{ color: C.navy, fontSize: 14, fontWeight: 700, margin: 0 }}>{t.titulo}</h4>
-                              {t.entrega   && <span style={{ background: C.greenBg, color: C.green, fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 980 }}>Entregado</span>}
-                              {t.esVencida && <span style={{ background: C.dangerBg, color: C.danger, fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 980 }}>Vencido</span>}
-                              {t.archivo_url && <span style={{ background: C.tealBg, color: C.greenDark, fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 980 }}>Adjunto</span>}
+            {/* Tareas del módulo */}
+            <div style={{ padding: "22px 28px 0" }}>
+              <p style={{ color: C.navy, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <FileText size={13} color={C.greenMid} /> Tareas
+                <span style={{ background: C.tealBg, color: C.greenMid, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 980 }}>{tareasDelModulo(moduloAbierto.id).length}</span>
+              </p>
+              {tareasDelModulo(moduloAbierto.id).length === 0
+                ? <div style={{ background: "white", borderRadius: 14, padding: "16px 20px", color: C.muted, fontSize: 13, textAlign: "center" }}>Sin tareas en este módulo.</div>
+                : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {tareasDelModulo(moduloAbierto.id).map((t: any) => (
+                    <div key={t.id} style={{ background: "white", borderRadius: 16, padding: "18px 20px", border: "1px solid rgba(0,0,0,0.05)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                            <h4 style={{ color: C.navy, fontSize: 14, fontWeight: 700, margin: 0 }}>{t.titulo}</h4>
+                            {t.entrega   && <span style={{ background: C.greenBg, color: C.green, fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 980 }}>Entregado</span>}
+                            {t.esVencida && <span style={{ background: C.dangerBg, color: C.danger, fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 980 }}>Vencido</span>}
+                            {t.archivo_url && <span style={{ background: C.tealBg, color: C.greenDark, fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 980 }}>Adjunto</span>}
+                          </div>
+                          <p style={{ color: C.mutedDark, fontSize: 12, margin: "0 0 6px" }}>{t.descripcion}</p>
+                          <span style={{ display: "flex", alignItems: "center", gap: 5, color: C.muted, fontSize: 11 }}>
+                            <Clock size={11} color={C.green} /> {t.fecha_entrega ? new Date(t.fecha_entrega).toLocaleString() : "Sin fecha"}
+                          </span>
+                          {t.archivo_url && (
+                            <a href={t.archivo_url} target="_blank" rel="noopener noreferrer"
+                              style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, background: C.tealBg, border: "1px solid #80cbc4", color: C.greenDark, fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 9, textDecoration: "none" }}>
+                              <Paperclip size={13} /> Ver material del docente
+                            </a>
+                          )}
+                          {t.entrega?.comentario && (
+                            <div style={{ marginTop: 10, background: C.pageBg, border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 10, padding: "10px 14px" }}>
+                              <p style={{ color: C.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 5 }}><MessageSquare size={10} /> Tu comentario</p>
+                              <p style={{ color: C.navy, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{t.entrega.comentario}</p>
                             </div>
-                            <p style={{ color: C.mutedDark, fontSize: 12, margin: "0 0 6px" }}>{t.descripcion}</p>
-                            <span style={{ display: "flex", alignItems: "center", gap: 5, color: C.muted, fontSize: 11 }}>
-                              <Clock size={11} color={C.green} /> {t.fecha_entrega ? new Date(t.fecha_entrega).toLocaleString() : "Sin fecha"}
-                            </span>
-                            {t.archivo_url && (
-                              <a href={t.archivo_url} target="_blank" rel="noopener noreferrer"
-                                style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7, background: C.tealBg, border: `1px solid #80cbc4`, color: C.greenDark, fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 9, textDecoration: "none" }}>
-                                <Paperclip size={13} /> Ver material del docente
-                              </a>
-                            )}
-                            {t.entrega?.comentario && (
-                              <div style={{ marginTop: 10, background: C.pageBg, border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 10, padding: "10px 14px" }}>
-                                <p style={{ color: C.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 5 }}>
-                                  <MessageSquare size={10} /> Tu comentario
-                                </p>
-                                <p style={{ color: C.navy, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{t.entrega.comentario}</p>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ minWidth: 120, textAlign: "center", flexShrink: 0 }}>
-                            {t.entrega ? (
-                              <div style={{ background: C.pageBg, borderRadius: 12, padding: "10px 14px", border: `1px solid ${C.border}` }}>
-                                <p style={{ color: C.muted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", margin: 0 }}>Nota</p>
-                                <span style={{ color: C.navy, fontSize: 24, fontWeight: 900 }}>{t.entrega.nota ?? "—"}</span>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => { if (!t.esVencida) { setComentarioEntrega(""); setUploadModal(t); } }}
-                                disabled={t.esVencida}
-                                className={t.esVencida ? "" : "btn-primary"}
-                                style={{ background: t.esVencida ? C.pageBg : C.navy, color: t.esVencida ? C.muted : "white", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600, cursor: t.esVencida ? "not-allowed" : "pointer", width: "100%" }}>
-                                {t.esVencida ? "Cerrado" : "Subir Tarea"}
-                              </button>
-                            )}
-                          </div>
+                          )}
                         </div>
-                        {t.link_contenido && <UniversalPlayer url={t.link_contenido} />}
+                        <div style={{ minWidth: 120, textAlign: "center", flexShrink: 0 }}>
+                          {t.entrega ? (
+                            <div style={{ background: C.pageBg, borderRadius: 12, padding: "10px 14px", border: `1px solid ${C.border}` }}>
+                              <p style={{ color: C.muted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", margin: 0 }}>Nota</p>
+                              <span style={{ color: C.navy, fontSize: 24, fontWeight: 900 }}>{t.entrega.nota ?? "—"}</span>
+                            </div>
+                          ) : (
+                            <button onClick={() => { if (!t.esVencida) { setComentarioEntrega(""); setUploadModal(t); } }} disabled={t.esVencida}
+                              className={t.esVencida ? "" : "btn-primary"}
+                              style={{ background: t.esVencida ? C.pageBg : C.navy, color: t.esVencida ? C.muted : "white", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600, cursor: t.esVencida ? "not-allowed" : "pointer", width: "100%" }}>
+                              {t.esVencida ? "Cerrado" : "Subir Tarea"}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                      {t.link_contenido && <UniversalPlayer url={t.link_contenido} />}
+                    </div>
+                  ))}
+                </div>
+              }
+            </div>
 
-            {/* Evaluaciones */}
+            {/* Evaluaciones del módulo */}
             <div style={{ padding: "22px 28px 0" }}>
               <p style={{ color: C.navy, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
                 <ClipboardList size={13} color={C.green} /> Evaluaciones
@@ -828,7 +727,7 @@ export default function StudentDashboard() {
                 ? <div style={{ background: "white", borderRadius: 14, padding: "16px 20px", color: C.muted, fontSize: 13, textAlign: "center" }}>Sin evaluaciones en este módulo.</div>
                 : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {evaluacionesDelModulo(moduloAbierto.id).map(ev => (
-                    <div key={ev.id} style={{ background: "white", borderRadius: 16, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, border: `1px solid rgba(0,0,0,0.05)` }}>
+                    <div key={ev.id} style={{ background: "white", borderRadius: 16, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, border: "1px solid rgba(0,0,0,0.05)" }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                           <h4 style={{ color: C.navy, fontSize: 14, fontWeight: 700, margin: 0 }}>{ev.titulo}</h4>
@@ -844,8 +743,7 @@ export default function StudentDashboard() {
                             <span style={{ color: ev.respuesta.nota >= 30 ? C.green : C.danger, fontSize: 20, fontWeight: 900 }}>{parseFloat(ev.respuesta.nota).toFixed(1)}<span style={{ fontSize: 12, color: C.muted }}> / 50</span></span>
                           </div>
                         ) : (
-                          <button onClick={() => { setModuloAbierto(null); comenzarEvaluacion(ev); }}
-                            className="btn-primary"
+                          <button onClick={() => { setModuloAbierto(null); comenzarEvaluacion(ev); }} className="btn-primary"
                             style={{ background: C.green, color: "white", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", width: "100%", boxShadow: `0 4px 12px rgba(0,200,83,0.3)` }}>
                             Presentar
                           </button>
@@ -857,7 +755,7 @@ export default function StudentDashboard() {
               }
             </div>
 
-            {/* Avisos */}
+            {/* Avisos del módulo */}
             <div style={{ padding: "22px 28px 28px" }}>
               <p style={{ color: C.navy, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
                 <Bell size={13} color={C.green} /> Avisos
@@ -888,18 +786,17 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* ════ MODAL: ENTREGA ════ */}
+      {/* MODAL: ENTREGA */}
       {uploadModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 300, display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
           <div style={{ background: "white", borderRadius: isMobile ? "24px 24px 0 0" : 28, padding: isMobile ? "28px 20px 36px" : 40, width: "100%", maxWidth: isMobile ? "100%" : 480, animation: `modalIn 280ms ${EASE_OUT}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <h3 style={{ color: C.navy, fontSize: 22, fontWeight: 800, margin: 0 }}>Entregar Tarea</h3>
-              <button onClick={() => { setUploadModal(null); setFile(null); setComentarioEntrega(""); }} className="icon-btn"
-                style={{ background: C.pageBg, border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}><X size={16} /></button>
+              <button onClick={() => { setUploadModal(null); setFile(null); setComentarioEntrega(""); }} className="icon-btn" style={{ background: C.pageBg, border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}><X size={16} /></button>
             </div>
             <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>{uploadModal.titulo}</p>
             {uploadModal.archivo_url && (
-              <div style={{ background: C.tealBg, border: `1px solid #80cbc4`, borderRadius: 14, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ background: C.tealBg, border: "1px solid #80cbc4", borderRadius: 14, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
                 <Paperclip size={16} color={C.greenDark} />
                 <div>
                   <p style={{ color: C.greenDark, fontSize: 11, fontWeight: 700, textTransform: "uppercase", margin: "0 0 2px" }}>Material del docente</p>
@@ -907,7 +804,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
             )}
-            <label style={{ display: "block", background: C.pageBg, border: `2px dashed rgba(0,0,0,0.1)`, borderRadius: 16, padding: 28, textAlign: "center", cursor: "pointer", marginBottom: 16 }}>
+            <label style={{ display: "block", background: C.pageBg, border: "2px dashed rgba(0,0,0,0.1)", borderRadius: 16, padding: 28, textAlign: "center", cursor: "pointer", marginBottom: 16 }}>
               <UploadCloud size={36} color={C.muted} style={{ margin: "0 auto 12px" }} />
               <p style={{ color: C.navy, fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{file ? file.name : "Seleccionar archivo"}</p>
               <p style={{ color: C.muted, fontSize: 11 }}>PDF, DOCX, ZIP — máx. 20 MB</p>
@@ -919,11 +816,10 @@ export default function StudentDashboard() {
                 <MessageSquare size={12} /> Comentario <span style={{ color: C.muted, fontWeight: 400, textTransform: "none" }}>(opcional)</span>
               </label>
               <textarea placeholder="Ej: Completé todos los puntos..." value={comentarioEntrega} onChange={e => setComentarioEntrega(e.target.value)}
-                style={{ width: "100%", background: C.pageBg, border: `1px solid rgba(0,0,0,0.1)`, borderRadius: 12, padding: "12px 16px", fontSize: 13, outline: "none", color: C.navy, minHeight: 90, resize: "none", boxSizing: "border-box" as const, lineHeight: 1.5 }} />
+                style={{ width: "100%", background: C.pageBg, border: "1px solid rgba(0,0,0,0.1)", borderRadius: 12, padding: "12px 16px", fontSize: 13, outline: "none", color: C.navy, minHeight: 90, resize: "none", boxSizing: "border-box" as const, lineHeight: 1.5 }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <button onClick={() => { setUploadModal(null); setFile(null); setComentarioEntrega(""); }}
-                style={{ background: C.pageBg, color: C.mutedDark, border: "none", borderRadius: 12, padding: 13, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={() => { setUploadModal(null); setFile(null); setComentarioEntrega(""); }} style={{ background: C.pageBg, color: C.mutedDark, border: "none", borderRadius: 12, padding: 13, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
               <button onClick={handleUpload} disabled={!file || loading} className={!file || loading ? "" : "btn-primary"}
                 style={{ background: !file || loading ? "rgba(0,200,83,0.4)" : C.green, color: "white", border: "none", borderRadius: 12, padding: 13, fontSize: 13, fontWeight: 600, cursor: !file || loading ? "not-allowed" : "pointer" }}>
                 {loading ? "Enviando..." : "Entregar"}
@@ -933,7 +829,7 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* ════ MODAL: RESULTADO EVALUACIÓN ════ */}
+      {/* MODAL: RESULTADO EVALUACIÓN */}
       {mostrarResultadoModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(13,27,42,0.92)", zIndex: 400, display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24, overflowY: "auto" }}>
           <div style={{ background: "white", borderRadius: isMobile ? "24px 24px 0 0" : 32, padding: isMobile ? "28px 20px 40px" : 44, width: "100%", maxWidth: isMobile ? "100%" : 520, textAlign: "center", margin: isMobile ? 0 : "auto", animation: `modalIn 320ms ${EASE_OUT}` }}>
@@ -961,25 +857,21 @@ export default function StudentDashboard() {
                 </div>
               </div>
             )}
-            <button
-              onClick={async () => { setMostrarResultadoModal(false); setView("clase"); setDetalleResultados([]); setEsNotaProvisional(false); setPreguntasPendientesCount(0); if (selectedClase) await fetchClaseData(selectedClase.id, userId); await fetchUserData(); }}
-              className="btn-primary"
-              style={{ background: C.navy, color: "white", border: "none", borderRadius: 12, width: "100%", padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={async () => { setMostrarResultadoModal(false); setView("clase"); setDetalleResultados([]); setEsNotaProvisional(false); setPreguntasPendientesCount(0); if (selectedClase) await fetchClaseData(selectedClase.id, userId); await fetchUserData(); }}
+              className="btn-primary" style={{ background: C.navy, color: "white", border: "none", borderRadius: 12, width: "100%", padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               Volver al Aula Virtual
             </button>
           </div>
         </div>
       )}
 
-      {/* ── BARRA INFERIOR MÓVIL ── */}
+      {/* BARRA INFERIOR MÓVIL */}
       {isMobile && (
-        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.navyDeep, borderTop: `1px solid rgba(255,255,255,0.08)`, display: "flex", justifyContent: "space-around", alignItems: "center", padding: "10px 0 14px", zIndex: 50 }}>
+        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.navyDeep, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-around", alignItems: "center", padding: "10px 0 14px", zIndex: 50 }}>
           {navItems.map(item => (
-            <button
-              key={item.v}
+            <button key={item.v}
               onClick={() => { setView(item.v as any); if (item.v === "calificaciones") fetchCalificaciones(userId, clases); }}
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "transparent", border: "none", cursor: "pointer", padding: "4px 16px", position: "relative" }}
-            >
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "transparent", border: "none", cursor: "pointer", padding: "4px 16px", position: "relative" }}>
               <span style={{ color: item.active ? C.green : C.muted, transition: `color 180ms ${EASE_OUT}` }}>{item.icon}</span>
               {item.badge && item.badge > 0 && <span style={{ position: "absolute", top: 0, right: 10, background: C.danger, color: "white", fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 980 }}>{item.badge}</span>}
               <span style={{ fontSize: 10, fontWeight: 600, color: item.active ? C.green : C.muted, transition: `color 180ms ${EASE_OUT}` }}>{item.label}</span>
@@ -989,31 +881,22 @@ export default function StudentDashboard() {
       )}
 
       <style>{`
-        @keyframes statIn  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes cardIn  { from { opacity: 0; transform: translateY(8px);  } to { opacity: 1; transform: translateY(0); } }
-        @keyframes modalIn { from { opacity: 0; transform: scale(0.96);       } to { opacity: 1; transform: scale(1);    } }
-
-        /* Emil: hover only on real pointer devices */
-        @media (hover: hover) and (pointer: fine) {
-          .card-hover:hover  { box-shadow: 0 8px 32px rgba(0,200,83,0.12); transform: translateY(-1px); }
-          .nav-btn:hover     { opacity: 0.9; }
-          .back-btn:hover    { opacity: 0.88; }
-          .signout-btn:hover { opacity: 0.75; }
+        @keyframes statIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes cardIn  { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.96);      } to { opacity:1; transform:scale(1);    } }
+        @media (hover:hover) and (pointer:fine) {
+          .card-hover:hover  { box-shadow:0 8px 32px rgba(0,200,83,0.12); transform:translateY(-1px); }
+          .nav-btn:hover     { opacity:0.9; }
+          .back-btn:hover    { opacity:0.88; }
+          .signout-btn:hover { opacity:0.75; }
         }
-
-        .card-hover { transition: box-shadow 200ms ${EASE_OUT}, transform 160ms ${EASE_OUT}; }
-
-        /* Emil: :active scale for press feedback */
-        .btn-primary:active { transform: scale(0.97); }
-        .icon-btn:active    { transform: scale(0.93); }
-        .back-btn:active    { transform: scale(0.98); }
-
-        .btn-primary { transition: opacity 150ms ${EASE_OUT}, transform 120ms ${EASE_OUT}, box-shadow 150ms ${EASE_OUT}; }
-        .icon-btn    { transition: transform 120ms ${EASE_OUT}, opacity 150ms ${EASE_OUT}; }
-
-        @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-        }
+        .card-hover  { transition:box-shadow 200ms ${EASE_OUT},transform 160ms ${EASE_OUT}; }
+        .btn-primary:active { transform:scale(0.97); }
+        .icon-btn:active    { transform:scale(0.93); }
+        .back-btn:active    { transform:scale(0.98); }
+        .btn-primary { transition:opacity 150ms ${EASE_OUT},transform 120ms ${EASE_OUT},box-shadow 150ms ${EASE_OUT}; }
+        .icon-btn    { transition:transform 120ms ${EASE_OUT},opacity 150ms ${EASE_OUT}; }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }
       `}</style>
     </div>
   );
