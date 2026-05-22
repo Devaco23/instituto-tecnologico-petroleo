@@ -1,5 +1,4 @@
 ﻿"use client";
-import Link from "next/link";
 import { ChevronDown, ChevronUp, MessageCircle, Mail, Phone, Menu, X, CheckCircle, CreditCard, Clock, BookOpen, Wrench, Award, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -30,10 +29,6 @@ function useWindowSize() {
   }, []);
   return { width, mounted };
 }
-
-// ════════════════════════════════════════════════════════
-// DATOS
-// ════════════════════════════════════════════════════════
 
 const tecnicosLaborales = [
   {
@@ -121,9 +116,6 @@ const iadcCursos = [
   { nombre: "Rig Inspection", desc: "Metodología de inspección técnica de equipos de perforación. Evaluación de integridad estructural, sistemas de izaje, BOP, sistemas de circulación y documentación reglamentaria." },
 ];
 
-// ════════════════════════════════════════════════════════
-// COMPONENTE: Acordeón sector (Técnicos Laborales)
-// ════════════════════════════════════════════════════════
 function AcordeonSector({ sector, color, bg, cursos, isMobile }: typeof tecnicosLaborales[0] & { isMobile: boolean }) {
   const [open, setOpen] = useState(false);
   const [openCurso, setOpenCurso] = useState<number | null>(null);
@@ -163,7 +155,7 @@ function AcordeonSector({ sector, color, bg, cursos, isMobile }: typeof tecnicos
                 <div style={{ padding: "0 16px 16px" }}>
                   <p style={{ color: C.mutedDark, fontSize: 13, lineHeight: 1.7, margin: "0 0 14px" }}>{c.desc}</p>
                   <div style={{ display: "flex", gap: 8, flexDirection: isMobile ? "column" : "row" }}>
-                    <a href={WHATSAPP} target="_blank" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: color, color: "white", padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                    <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: color, color: "white", padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
                       <MessageCircle size={14} /> Inscribirme
                     </a>
                     <a href={EMAIL} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: bg, color: color, padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
@@ -180,11 +172,6 @@ function AcordeonSector({ sector, color, bg, cursos, isMobile }: typeof tecnicos
   );
 }
 
-
-
-// ════════════════════════════════════════════════════════
-// PAGE
-// ════════════════════════════════════════════════════════
 export default function HomePage() {
   const { width, mounted } = useWindowSize();
   const isMobile = mounted && width < 768;
@@ -227,7 +214,8 @@ export default function HomePage() {
           </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/login" style={{ background: C.green, color: "white", padding: isMobile ? "8px 16px" : "10px 22px", borderRadius: 980, fontSize: isMobile ? 13 : 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 14px rgba(0,200,83,0.35)" }}>Aula Virtual</Link>
+          {/* ✅ CORRECCIÓN: target="_blank" + rel="noopener noreferrer" — abre en pestaña nueva de forma segura */}
+          <a href="/login" target="_blank" rel="noopener noreferrer" style={{ background: C.green, color: "white", padding: isMobile ? "8px 16px" : "10px 22px", borderRadius: 980, fontSize: isMobile ? 13 : 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 14px rgba(0,200,83,0.35)" }}>Aula Virtual</a>
           {isMobile && (
             <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", color: "white" }}>
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -243,7 +231,7 @@ export default function HomePage() {
             <a key={l} href={h} onClick={() => setMenuOpen(false)} style={{ color: "rgba(255,255,255,0.85)", fontSize: 16, fontWeight: 600, textDecoration: "none", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{l}</a>
           ))}
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <a href={WHATSAPP} target="_blank" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.green, color: "white", padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><MessageCircle size={15} /> WhatsApp</a>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.green, color: "white", padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><MessageCircle size={15} /> WhatsApp</a>
             <a href={EMAIL} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(255,255,255,0.08)", color: "white", padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)" }}><Mail size={15} /> Email</a>
           </div>
         </div>
@@ -265,7 +253,7 @@ export default function HomePage() {
             Modalidad 100% virtual · Clases de lunes a jueves 7–9 pm · Certificación avalada por SSAAES
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexDirection: isMobile ? "column" : "row", padding: isMobile ? "0 12px" : 0 }}>
-            <a href={WHATSAPP} target="_blank" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: isMobile ? "14px 24px" : "15px 34px", borderRadius: 980, fontSize: isMobile ? 14 : 16, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 24px rgba(0,200,83,0.45)", width: isMobile ? "100%" : "auto", boxSizing: "border-box" as const }}>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: isMobile ? "14px 24px" : "15px 34px", borderRadius: 980, fontSize: isMobile ? 14 : 16, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 24px rgba(0,200,83,0.45)", width: isMobile ? "100%" : "auto", boxSizing: "border-box" as const }}>
               <MessageCircle size={18} /> Inscribirme ahora
             </a>
             <a href="#programas" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, background: "rgba(255,255,255,0.12)", color: "white", padding: isMobile ? "14px 24px" : "15px 34px", borderRadius: 980, fontSize: isMobile ? 14 : 16, fontWeight: 700, textDecoration: "none", border: "2px solid rgba(255,255,255,0.3)", backdropFilter: "blur(8px)", width: isMobile ? "100%" : "auto", boxSizing: "border-box" as const }}>
@@ -312,10 +300,10 @@ export default function HomePage() {
         {/* Tabs */}
         <div style={{ display: "flex", gap: 6, marginBottom: 24, background: "white", padding: 6, borderRadius: 16, border: "1px solid rgba(0,0,0,0.07)", flexWrap: isMobile ? "wrap" : "nowrap" }}>
           {[
-            { key: "tecnicos",   label: isMobile ? "Técnicos" : "Técnicos Laborales",   icon: <Wrench size={13} /> },
+            { key: "tecnicos",   label: isMobile ? "Técnicos" : "Técnicos Laborales",    icon: <Wrench size={13} /> },
             { key: "academicos", label: isMobile ? "Académicos" : "Programas Académicos", icon: <BookOpen size={13} /> },
-            { key: "validacion", label: isMobile ? "Validación" : "Validación de Comp.", icon: <Award size={13} /> },
-            { key: "iadc",       label: isMobile ? "IADC" : "Certificaciones IADC",      icon: <Globe size={13} /> },
+            { key: "validacion", label: isMobile ? "Validación" : "Validación de Comp.",  icon: <Award size={13} /> },
+            { key: "iadc",       label: isMobile ? "IADC" : "Certificaciones IADC",       icon: <Globe size={13} /> },
           ].map(tab => (
             <button key={tab.key} onClick={() => setSeccion(tab.key as any)}
               style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "9px 8px" : "12px 14px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: isMobile ? 11 : 13, fontWeight: 700, background: seccion === tab.key ? (tab.key === "iadc" ? C.greenMid : C.green) : "transparent", color: seccion === tab.key ? "white" : C.muted, transition: "all 0.18s ease", whiteSpace: "nowrap" }}>
@@ -350,7 +338,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 2. Programas Disponibles (acordeón con sub-acordeones de sector) */}
+            {/* 2. Programas Disponibles */}
             <div style={{ background: "white", borderRadius: 18, border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden" }}>
               <button onClick={() => setOpenTecReq(!openTecReq)}
                 style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", background: "white", border: "none", cursor: "pointer" }}>
@@ -446,7 +434,7 @@ export default function HomePage() {
               )}
             </div>
 
-            <a href={WHATSAPP} target="_blank" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
               <MessageCircle size={18} /> Inscribirme ahora
             </a>
           </div>
@@ -475,16 +463,14 @@ export default function HomePage() {
                   <div style={{ padding: "0 18px 16px" }}>
                     <p style={{ color: C.mutedDark, fontSize: 13, lineHeight: 1.7, margin: "0 0 14px" }}>{p.desc}</p>
                     <div style={{ display: "flex", gap: 8, flexDirection: isMobile ? "column" : "row" }}>
-                      <a href={WHATSAPP} target="_blank" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.green, color: "white", padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><MessageCircle size={14} /> Consultar</a>
+                      <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.green, color: "white", padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><MessageCircle size={14} /> Consultar</a>
                       <a href={EMAIL} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.greenBg, color: C.green, padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><Mail size={14} /> Más info</a>
                     </div>
-                    
                   </div>
                 )}
               </div>
-              
             ))}
-             <a href={WHATSAPP} target="_blank" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
               <MessageCircle size={18} /> Consulta por nuestros programas
             </a>
           </div>
@@ -493,7 +479,6 @@ export default function HomePage() {
         {/* TAB: Validación de Competencias */}
         {seccion === "validacion" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Info general */}
             <div style={{ background: "white", borderRadius: 18, padding: "24px 22px", border: "1px solid rgba(0,0,0,0.07)" }}>
               <p style={{ color: C.green, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 8px" }}>¿Qué es?</p>
               <p style={{ color: C.navy, fontSize: 14, fontWeight: 600, margin: "0 0 8px" }}>Modalidad especial para personas con experiencia laboral comprobable</p>
@@ -515,7 +500,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Especialidades */}
             <div style={{ background: "white", borderRadius: 18, border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden" }}>
               <button onClick={() => setOpenValid(!openValid)}
                 style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", background: "white", border: "none", cursor: "pointer" }}>
@@ -540,7 +524,6 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Requisitos validación */}
             <div style={{ background: "white", borderRadius: 18, border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden" }}>
               <button onClick={() => setOpenCostos(!openCostos)}
                 style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", background: "white", border: "none", cursor: "pointer" }}>
@@ -573,7 +556,6 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Bancos validación */}
             <div style={{ background: "white", borderRadius: 18, border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden" }}>
               <button onClick={() => setOpenValidBanco(!openValidBanco)}
                 style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", background: "white", border: "none", cursor: "pointer" }}>
@@ -608,7 +590,7 @@ export default function HomePage() {
               )}
             </div>
 
-            <a href={WHATSAPP} target="_blank" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.green, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
               <MessageCircle size={18} /> Iniciar proceso de validación
             </a>
           </div>
@@ -617,7 +599,6 @@ export default function HomePage() {
         {/* TAB: Certificaciones IADC */}
         {seccion === "iadc" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Header informativo */}
             <div style={{ background: "white", borderRadius: 18, padding: "24px 22px", border: "1px solid rgba(0,0,0,0.07)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 14, background: C.tealBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -638,7 +619,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Lista cursos IADC */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {iadcCursos.map((c, i) => (
                 <div key={c.nombre} style={{ background: "white", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(0,0,0,0.06)" }}>
@@ -654,7 +634,7 @@ export default function HomePage() {
                     <div style={{ padding: "0 18px 16px" }}>
                       <p style={{ color: C.mutedDark, fontSize: 13, lineHeight: 1.7, margin: "0 0 14px" }}>{c.desc}</p>
                       <div style={{ display: "flex", gap: 8, flexDirection: isMobile ? "column" : "row" }}>
-                        <a href={WHATSAPP} target="_blank" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.greenMid, color: "white", padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><MessageCircle size={14} /> Inscribirme</a>
+                        <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.greenMid, color: "white", padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><MessageCircle size={14} /> Inscribirme</a>
                         <a href={EMAIL} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.tealBg, color: C.greenMid, padding: "10px 20px", borderRadius: 980, fontSize: 13, fontWeight: 600, textDecoration: "none" }}><Mail size={14} /> Más info</a>
                       </div>
                     </div>
@@ -663,7 +643,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            <a href={WHATSAPP} target="_blank" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.greenMid, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,191,165,0.35)" }}>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, background: C.greenMid, color: "white", padding: "14px 28px", borderRadius: 14, fontSize: 15, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,191,165,0.35)" }}>
               <MessageCircle size={18} /> Consultar certificaciones IADC
             </a>
           </div>
@@ -681,7 +661,7 @@ export default function HomePage() {
             Un asesor te contactará y te guiará en el proceso de inscripción.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexDirection: isMobile ? "column" : "row" }}>
-            <a href={WHATSAPP} target="_blank" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.green, color: "white", padding: isMobile ? "14px 24px" : "13px 28px", borderRadius: 980, fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.green, color: "white", padding: isMobile ? "14px 24px" : "13px 28px", borderRadius: 980, fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 6px 20px rgba(0,200,83,0.35)" }}>
               <MessageCircle size={16} /> 321 8837010 / 311 5267054
             </a>
             <a href={EMAIL} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(255,255,255,0.08)", color: "white", padding: isMobile ? "14px 24px" : "13px 28px", borderRadius: 980, fontSize: 14, fontWeight: 700, textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
