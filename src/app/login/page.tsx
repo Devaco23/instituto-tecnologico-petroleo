@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import { type FormEvent, useState } from "react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sesionExpirada = searchParams.get("reason") === "inactividad";
@@ -65,9 +66,7 @@ export default function LoginPage() {
       padding: "40px 24px", fontFamily: "Inter, sans-serif",
       position: "relative", overflow: "hidden",
     }}>
-      {/* Fondo */}
       <div style={{ position: "absolute", inset: 0, backgroundImage: "url('/fondlog.jpg')", backgroundSize: "cover", backgroundPosition: "center" }} />
-      {/* Overlay oscuro */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(13,27,42,0.88) 0%, rgba(10,42,26,0.85) 100%)" }} />
 
       <section style={{
@@ -78,7 +77,6 @@ export default function LoginPage() {
         borderRadius: 24, padding: "36px 32px",
         backdropFilter: "blur(16px)",
       }}>
-
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
             <img src="/logo.png" alt="ITP Logo" style={{ height: 72, width: "auto", objectFit: "contain" }} />
@@ -135,8 +133,15 @@ export default function LoginPage() {
           <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, margin: 0 }}>¿Olvidaste tu acceso o no tienes cuenta?</p>
           <p style={{ color: "#00C853", fontSize: 11, fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase", marginTop: 4 }}>Contactar a Soporte Técnico ITP</p>
         </div>
-
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
