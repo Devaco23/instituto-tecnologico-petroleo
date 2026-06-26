@@ -23,7 +23,7 @@ export default function Navbar({ isMobile }: { isMobile: boolean }) {
 
   return (
     <>
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: scrolled || pathname !== "/" ? "rgba(13,27,42,0.97)" : "transparent", backdropFilter: scrolled || pathname !== "/" ? "blur(12px)" : "none", borderBottom: scrolled || pathname !== "/" ? "1px solid rgba(0,200,83,0.15)" : "none", padding: isMobile ? "14px 20px" : "16px 48px", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.3s ease" }}>
+      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: scrolled || (pathname !== "/" && pathname !== "/contacto") ? "rgba(13,27,42,0.97)" : "transparent", backdropFilter: scrolled || (pathname !== "/" && pathname !== "/contacto") ? "blur(12px)" : "none", borderBottom: scrolled || (pathname !== "/" && pathname !== "/contacto") ? "1px solid rgba(0,200,83,0.15)" : "none", padding: isMobile ? "14px 20px" : "16px 48px", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.3s ease" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <img src="/logo.png" alt="ITP" style={{ height: isMobile ? 38 : 48, width: "auto", objectFit: "contain", filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.3))" }} />
           <div>
