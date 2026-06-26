@@ -1,34 +1,31 @@
-// src/app/layout.tsx
-import type { Metadata } from "next";
-import { Poppins, Open_Sans } from "next/font/google";
-import "./globals.css";
+"use client";
+import { C } from "@/lib/constants";
+import { useWindowSize } from "@/lib/useWindowSize";
+import { usePathname } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import WhatsappFloat from "@/components/WhatsappFloat";
 
-const poppins = Poppins({ 
-  subsets: ["latin"], 
-  weight: ["700", "900"],
-  variable: '--font-poppins'
-});
+const RUTAS_SIN_CHROME = ["/login"];
 
-const openSans = Open_Sans({ 
-  subsets: ["latin"], 
-  weight: ["400", "600"],
-  variable: '--font-opensans'
-});
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const { width, mounted } = useWindowSize();
+  const isMobile = mounted && width < 768;
+  const pathname = usePathname();
+  const sinChrome = RUTAS_SIN_CHROME.some(r => pathname.startsWith(r));
 
-export const metadata: Metadata = {
-  title: "ITP CORE - Plataforma Académica",
-  description: "Sistema Integral del Instituto Tecnológico del Petróleo",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
   return (
-    <html lang="es" className={`${poppins.variable} ${openSans.variable}`}>
-      <body className="font-opensans antialiased">
-        {children}
+    <html lang="es">
+      <body style={{ margin: 0, minHeight: "100vh", background: sinChrome ? "#0d1b2a" : C.pageBg, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        {!sinChrome && <Navbar isMobile={isMobile} />}
+        <main>{children}</main>
+        {!sinChrome && <Footer isMobile={isMobile} />}
+        {!sinChrome && <WhatsappFloat isMobile={isMobile} />}
+        <style>{`
+          @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0);} 50%{transform:translateX(-50%) translateY(10px);} }
+          a { transition: opacity 0.2s; }
+          * { box-sizing: border-box; }
+        `}</style>
       </body>
     </html>
   );

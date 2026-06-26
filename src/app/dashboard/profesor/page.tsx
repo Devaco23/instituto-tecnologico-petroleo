@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import {
   BookOpen, Users, Plus, Trash2, CheckCircle, LogOut, Clock,
   ArrowLeft, UserPlus, X, Globe, Star, Edit3, Calendar, ChevronLeft, ChevronRight,
@@ -542,6 +543,7 @@ function InformeFinal({
 // ══════════════════════════════════════════════════════════════════════════════
 export default function TeacherDashboard() {
   const router = useRouter();
+  useInactivityLogout();
   const { width: screenWidth, mounted } = useWindowSize();
   const isMobile = mounted && screenWidth < 768;
   const [view, setView] = useState<"dashboard" | "estudiantes" | "calificar" | "detalle-clase" | "calendario" | "informes">("dashboard");

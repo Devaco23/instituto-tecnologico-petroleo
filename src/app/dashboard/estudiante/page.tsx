@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 import {
   Book, Clock, LogOut, ArrowLeft, UploadCloud,
   X, Calendar, CheckCircle, AlertCircle, ChevronLeft, ChevronRight,
@@ -10,7 +11,6 @@ import {
   MessageSquare, Paperclip,
 } from "lucide-react";
 
-// ─── PALETA ITP ───────────────────────────────────────────────────────────────
 const C = {
   green:     "#00C853",
   greenMid:  "#00BFA5",
@@ -94,6 +94,7 @@ const avisoColors = {
 
 export default function StudentDashboard() {
   const router = useRouter();
+  useInactivityLogout();
   const { width: screenWidth, mounted } = useWindowSize();
   const isMobile = mounted && screenWidth < 768;
 
@@ -138,7 +139,7 @@ export default function StudentDashboard() {
     const clasesData = inscs?.map((i: any) => i.clases).filter(Boolean) || [];
     setClases(clasesData);
     const { data: tareasData } = await supabase.from("tareas_estudiante").select("*").eq("alumno_id", user.id).order("fecha_entrega", { ascending: true });
-    const { data: entregas } = await supabase.from("entregas_tareas").select("tarea_id, nota, archivo_url, comentario").eq("alumno_id", user.id);
+    const { data: entregas } = await supabase.from("entregas_tareas").select("tarea_id, nota, archivo_url, comentario, comentario_docente").eq("alumno_id", user.id);
     setTodasTareas((tareasData || []).map((t: any) => {
       const entrega = entregas?.find((e: any) => e.tarea_id === t.id);
       return { ...t, entrega, esVencida: new Date(t.fecha_entrega).getTime() < Date.now() && !entrega };
@@ -148,7 +149,7 @@ export default function StudentDashboard() {
   const fetchClaseData = async (cid: string, uid: string) => {
     setLoading(true);
     const { data: t } = await supabase.from("tareas_clase").select("*").eq("clase_id", cid).order("created_at", { ascending: false });
-    const { data: e } = await supabase.from("entregas_tareas").select("tarea_id, nota, archivo_url, comentario").eq("alumno_id", uid);
+    const { data: e } = await supabase.from("entregas_tareas").select("tarea_id, nota, archivo_url, comentario, comentario_docente").eq("alumno_id", uid);
     setTareas(t?.map((task: any) => {
       const entrega = e?.find((ent: any) => ent.tarea_id === task.id);
       return { ...task, entrega, esVencida: new Date(task.fecha_entrega).getTime() < Date.now() && !entrega };
@@ -161,7 +162,6 @@ export default function StudentDashboard() {
     setLoading(false);
   };
 
-  // ── UPLOAD ROBUSTO ──────────────────────────────────────────────────────────
   const handleUpload = async () => {
     if (!file || !uploadModal) return;
     setLoading(true);
@@ -256,11 +256,11 @@ export default function StudentDashboard() {
       const modMap: Record<string, string> = {};
       (mods || []).forEach((m: any) => { modMap[m.id] = m.titulo; });
       const { data: tc } = await supabase.from("tareas_clase").select("id, titulo, modulo_id").eq("clase_id", clase.id);
-      const { data: ec } = await supabase.from("entregas_tareas").select("tarea_id, nota, archivo_url").eq("alumno_id", uid).not("nota", "is", null);
+      const { data: ec } = await supabase.from("entregas_tareas").select("tarea_id, nota, archivo_url, comentario_docente").eq("alumno_id", uid).not("nota", "is", null);
       const tareasCalif = (tc || []).map((t: any) => {
         const e = (ec || []).find((x: any) => x.tarea_id === t.id);
         if (!e) return null;
-        return { id: t.id, titulo: t.titulo, tipo: "tarea", modulo_id: t.modulo_id, modulo_nombre: modMap[t.modulo_id] || "Sin módulo", nota: e.nota, escala: 50 };
+        return { id: t.id, titulo: t.titulo, tipo: "tarea", modulo_id: t.modulo_id, modulo_nombre: modMap[t.modulo_id] || "Sin módulo", nota: e.nota, comentario_docente: e.comentario_docente, escala: 50 };
       }).filter(Boolean);
       const { data: evsC } = await supabase.from("evaluaciones").select("id, titulo, modulo_id").eq("clase_id", clase.id);
       const { data: rc } = await supabase.from("respuestas_evaluacion").select("evaluacion_id, nota, es_provisional").eq("alumno_id", uid);
@@ -607,24 +607,35 @@ export default function StudentDashboard() {
                                   const colorNota = nota >= 35 ? C.green : nota >= 25 ? "#f59e0b" : C.danger;
                                   const bgNota   = nota >= 35 ? C.greenBg : nota >= 25 ? "#fef3c7" : C.dangerBg;
                                   return (
-                                    <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, background: C.pageBg, borderRadius: 14, padding: "14px 18px", border: "1px solid rgba(0,0,0,0.04)", animation: isOpen ? `cardIn 250ms ${EASE_OUT} ${ii * 30}ms both` : "none" }}>
-                                      <div style={{ width: 36, height: 36, borderRadius: 10, background: item.tipo === "tarea" ? C.tealBg : C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                        {item.tipo === "tarea" ? <FileText size={16} color={C.greenMid} /> : <ClipboardList size={16} color={C.green} />}
-                                      </div>
-                                      <div style={{ flex: 1 }}>
-                                        <p style={{ color: C.navy, fontSize: 13, fontWeight: 600, margin: "0 0 3px" }}>{item.titulo}</p>
-                                        <div style={{ display: "flex", gap: 5 }}>
-                                          <span style={{ background: item.tipo === "tarea" ? C.tealBg : C.greenBg, color: item.tipo === "tarea" ? C.greenMid : C.green, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>{item.tipo === "tarea" ? "Tarea" : "Evaluación"}</span>
-                                          {item.es_provisional && <span style={{ background: C.tealBg, color: C.greenDark, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>⏳ Provisional</span>}
+                                    <div key={item.id} style={{ background: C.pageBg, borderRadius: 14, padding: "14px 18px", border: "1px solid rgba(0,0,0,0.04)", animation: isOpen ? `cardIn 250ms ${EASE_OUT} ${ii * 30}ms both` : "none" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                                        <div style={{ width: 36, height: 36, borderRadius: 10, background: item.tipo === "tarea" ? C.tealBg : C.greenBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                          {item.tipo === "tarea" ? <FileText size={16} color={C.greenMid} /> : <ClipboardList size={16} color={C.green} />}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                          <p style={{ color: C.navy, fontSize: 13, fontWeight: 600, margin: "0 0 3px" }}>{item.titulo}</p>
+                                          <div style={{ display: "flex", gap: 5 }}>
+                                            <span style={{ background: item.tipo === "tarea" ? C.tealBg : C.greenBg, color: item.tipo === "tarea" ? C.greenMid : C.green, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>{item.tipo === "tarea" ? "Tarea" : "Evaluación"}</span>
+                                            {item.es_provisional && <span style={{ background: C.tealBg, color: C.greenDark, fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 980 }}>⏳ Provisional</span>}
+                                          </div>
+                                        </div>
+                                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                          <div style={{ background: bgNota, borderRadius: 12, padding: "8px 14px" }}>
+                                            <p style={{ color: C.muted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", margin: "0 0 1px" }}>Nota</p>
+                                            <span style={{ color: colorNota, fontSize: 20, fontWeight: 900 }}>{nota.toFixed(1)}</span>
+                                            <span style={{ color: C.muted, fontSize: 11 }}>/50</span>
+                                          </div>
                                         </div>
                                       </div>
-                                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                        <div style={{ background: bgNota, borderRadius: 12, padding: "8px 14px" }}>
-                                          <p style={{ color: C.muted, fontSize: 9, fontWeight: 600, textTransform: "uppercase", margin: "0 0 1px" }}>Nota</p>
-                                          <span style={{ color: colorNota, fontSize: 20, fontWeight: 900 }}>{nota.toFixed(1)}</span>
-                                          <span style={{ color: C.muted, fontSize: 11 }}>/50</span>
+                                      {/* Retroalimentación del docente */}
+                                      {item.comentario_docente && (
+                                        <div style={{ marginTop: 12, background: C.greenBg, border: "1px solid #b9f6ca", borderRadius: 10, padding: "10px 14px" }}>
+                                          <p style={{ color: C.greenDark, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 5 }}>
+                                            <MessageSquare size={10} /> Retroalimentación del docente
+                                          </p>
+                                          <p style={{ color: C.navy, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{item.comentario_docente}</p>
                                         </div>
-                                      </div>
+                                      )}
                                     </div>
                                   );
                                 })}
@@ -688,10 +699,18 @@ export default function StudentDashboard() {
                               <Paperclip size={13} /> Ver material del docente
                             </a>
                           )}
+                          {/* Comentario del estudiante */}
                           {t.entrega?.comentario && (
                             <div style={{ marginTop: 10, background: C.pageBg, border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 10, padding: "10px 14px" }}>
                               <p style={{ color: C.muted, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 5 }}><MessageSquare size={10} /> Tu comentario</p>
                               <p style={{ color: C.navy, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{t.entrega.comentario}</p>
+                            </div>
+                          )}
+                          {/* Retroalimentación del docente */}
+                          {t.entrega?.comentario_docente && (
+                            <div style={{ marginTop: 10, background: C.greenBg, border: "1px solid #b9f6ca", borderRadius: 10, padding: "10px 14px" }}>
+                              <p style={{ color: C.greenDark, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 5 }}><MessageSquare size={10} /> Retroalimentación del docente</p>
+                              <p style={{ color: C.navy, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{t.entrega.comentario_docente}</p>
                             </div>
                           )}
                         </div>
@@ -890,12 +909,12 @@ export default function StudentDashboard() {
           .back-btn:hover    { opacity:0.88; }
           .signout-btn:hover { opacity:0.75; }
         }
-        .card-hover  { transition:box-shadow 200ms ${EASE_OUT},transform 160ms ${EASE_OUT}; }
+        .card-hover  { transition:box-shadow 200ms cubic-bezier(0.23,1,0.32,1),transform 160ms cubic-bezier(0.23,1,0.32,1); }
         .btn-primary:active { transform:scale(0.97); }
         .icon-btn:active    { transform:scale(0.93); }
         .back-btn:active    { transform:scale(0.98); }
-        .btn-primary { transition:opacity 150ms ${EASE_OUT},transform 120ms ${EASE_OUT},box-shadow 150ms ${EASE_OUT}; }
-        .icon-btn    { transition:transform 120ms ${EASE_OUT},opacity 150ms ${EASE_OUT}; }
+        .btn-primary { transition:opacity 150ms cubic-bezier(0.23,1,0.32,1),transform 120ms cubic-bezier(0.23,1,0.32,1),box-shadow 150ms cubic-bezier(0.23,1,0.32,1); }
+        .icon-btn    { transition:transform 120ms cubic-bezier(0.23,1,0.32,1),opacity 150ms cubic-bezier(0.23,1,0.32,1); }
         @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }
       `}</style>
     </div>
